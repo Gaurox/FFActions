@@ -1,0 +1,40 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Build artifacts
+/FFActions_Setup.exe
+/dist/
+/release/
+/Z-scripts4gpt/
+
+# Generated action executables
+/actions/*.exe
+/actions/*.exe.config
+
+# Generated action scripts
+/actions/*.ps1
+!/actions/*.template.ps1
+!/actions/build_ffaction.ps1
+!/actions/change_audio_pitch_launcher.ps1
+!/actions/_shared/ffcommon_progress.ps1
+
+# Local backups and logs
+/actions/backup/
+/log/
+
+# Temporary files
+/tmp_*.wav
+*.tmp
+
+# Local test assets and outputs
+/test/
+
+# Local third-party binaries
+/tools/ffmpeg/*.exe
+
+# Optional local icon/source archives
+/tools/icons/*.png
+/tools/icons/*_old.ico
+/tools/icons/*.zip
