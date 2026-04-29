@@ -118,27 +118,56 @@ function Get-ShortErrorText {
         }
     }
 
-    return 'FFmpeg failed during image crop.'
+    return 'FFmpeg failed during video crop.'
 }
 
-function Get-ImageInfo {
-    param([Parameter(Mandatory = $true)][string]$Path)
+function Get-VideoInfo {
+    param(
+        [Parameter(Mandatory = $true)][string]$FfprobePath,
+        [Parameter(Mandatory = $true)][string]$FilePath
+    )
 
-    $stream = [System.IO.File]::OpenRead($Path)
-    try {
-        $image = [System.Drawing.Image]::FromStream($stream, $false, $false)
-        try {
-            return [PSCustomObject]@{
-                Width  = [int]$image.Width
-                Height = [int]$image.Height
-            }
+    $probeResult = Invoke-HiddenProcess -FilePath $FfprobePath -Arguments @(
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'format=duration:stream=width,height',
+        '-of', 'default=nokey=0:noprint_wrappers=1',
+        $FilePath
+    )
+
+    if ($probeResult.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($probeResult.StdOut)) {
+        $probeErr = $probeResult.StdErr.Trim()
+        if ([string]::IsNullOrWhiteSpace($probeErr)) {
+            $probeErr = 'ffprobe failed to read video information.'
         }
-        finally {
-            $image.Dispose()
+        throw $probeErr
+    }
+
+    $map = @{}
+    foreach ($line in ($probeResult.StdOut -split "`r?`n")) {
+        if ($line -match '^(?<k>[^=]+)=(?<v>.*)$') {
+            $map[$matches['k']] = $matches['v']
         }
     }
-    finally {
-        $stream.Dispose()
+
+    if (-not $map.ContainsKey('duration')) {
+        throw 'Unable to determine video duration.'
+    }
+
+    $durationSeconds = [double]::Parse($map['duration'].Replace(',', '.'), [System.Globalization.CultureInfo]::InvariantCulture)
+    if ($durationSeconds -le 0) {
+        throw 'Invalid video duration.'
+    }
+
+    $width = 0
+    $height = 0
+    if ($map.ContainsKey('width') -and $map['width'] -match '^\d+$') { $width = [int]$map['width'] }
+    if ($map.ContainsKey('height') -and $map['height'] -match '^\d+$') { $height = [int]$map['height'] }
+
+    return [PSCustomObject]@{
+        DurationSeconds = $durationSeconds
+        Width           = $width
+        Height          = $height
     }
 }
 
@@ -178,6 +207,43 @@ function New-PreviewBitmap {
     }
     finally {
         $stream.Dispose()
+    }
+}
+
+function New-VideoPreviewBitmap {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputFile,
+        [Parameter(Mandatory = $true)][string]$FfmpegPath,
+        [Parameter(Mandatory = $true)][double]$TimeSeconds,
+        [Parameter(Mandatory = $true)][int]$MaxWidth,
+        [Parameter(Mandatory = $true)][int]$MaxHeight
+    )
+
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+    $safeSeconds = [Math]::Max(0.0, $TimeSeconds)
+    $timeText = $safeSeconds.ToString('0.###', $culture)
+    $tmpPath = Join-Path ([System.IO.Path]::GetTempPath()) ("ffactions_video_crop_preview_{0}.png" -f ([guid]::NewGuid().ToString('N')))
+
+    try {
+        $args = @(
+            '-hide_banner',
+            '-loglevel', 'error',
+            '-y',
+            '-ss', $timeText,
+            '-i', $InputFile,
+            '-frames:v', '1',
+            $tmpPath
+        )
+
+        $result = Invoke-HiddenProcess -FilePath $FfmpegPath -Arguments $args
+        if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $tmpPath)) {
+            throw (Get-ShortErrorText -StdErr $result.StdErr)
+        }
+
+        return New-PreviewBitmap -Path $tmpPath -MaxWidth $MaxWidth -MaxHeight $MaxHeight
+    }
+    finally {
+        Remove-Item -LiteralPath $tmpPath -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -257,38 +323,242 @@ function Clamp-CropRect {
     return $r
 }
 
-function Show-CropWindow {
+function Format-TimeForDisplay {
+    param([Parameter(Mandatory = $true)][double]$Seconds)
+
+    if ($Seconds -lt 0) { $Seconds = 0 }
+    $hours = [int][Math]::Floor($Seconds / 3600)
+    $remaining = $Seconds - ($hours * 3600)
+    $minutes = [int][Math]::Floor($remaining / 60)
+    $secs = $remaining - ($minutes * 60)
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+
+    return [string]::Format($culture, '{0:D2}:{1:D2}:{2:00.000}', $hours, $minutes, $secs)
+}
+
+function Test-NvencAvailable([string]$FfmpegPath) {
+    $probeResult = Invoke-HiddenProcess -FilePath $FfmpegPath -Arguments @('-hide_banner', '-encoders')
+    if ($probeResult.ExitCode -ne 0) {
+        return $false
+    }
+
+    $allText = ($probeResult.StdOut + "`r`n" + $probeResult.StdErr)
+    return ($allText -match '(^|\s)h264_nvenc(\s|$)')
+}
+
+function Get-EncodingPlan([string]$TargetExtension, [bool]$NvencAvailable) {
+    switch ($TargetExtension.ToLowerInvariant()) {
+        '.mp4' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libx264'
+                VideoArgs  = @('-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                AudioCodec = 'aac'
+                AudioArgs  = @('-b:a', '320k')
+            }
+
+            if ($NvencAvailable) {
+                $gpu = [PSCustomObject]@{
+                    ModeLabel  = 'NVIDIA GPU'
+                    VideoCodec = 'h264_nvenc'
+                    VideoArgs  = @('-preset', 'p5', '-cq', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                    AudioCodec = 'aac'
+                    AudioArgs  = @('-b:a', '320k')
+                }
+
+                return [PSCustomObject]@{ Primary = $gpu; Fallback = $cpu }
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        '.mkv' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libx264'
+                VideoArgs  = @('-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p')
+                AudioCodec = 'aac'
+                AudioArgs  = @('-b:a', '320k')
+            }
+
+            if ($NvencAvailable) {
+                $gpu = [PSCustomObject]@{
+                    ModeLabel  = 'NVIDIA GPU'
+                    VideoCodec = 'h264_nvenc'
+                    VideoArgs  = @('-preset', 'p5', '-cq', '21', '-pix_fmt', 'yuv420p')
+                    AudioCodec = 'aac'
+                    AudioArgs  = @('-b:a', '320k')
+                }
+
+                return [PSCustomObject]@{ Primary = $gpu; Fallback = $cpu }
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        '.avi' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'mpeg4'
+                VideoArgs  = @('-q:v', '2')
+                AudioCodec = 'libmp3lame'
+                AudioArgs  = @('-b:a', '320k')
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        '.mov' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libx264'
+                VideoArgs  = @('-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                AudioCodec = 'aac'
+                AudioArgs  = @('-b:a', '320k')
+            }
+
+            if ($NvencAvailable) {
+                $gpu = [PSCustomObject]@{
+                    ModeLabel  = 'NVIDIA GPU'
+                    VideoCodec = 'h264_nvenc'
+                    VideoArgs  = @('-preset', 'p5', '-cq', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                    AudioCodec = 'aac'
+                    AudioArgs  = @('-b:a', '320k')
+                }
+
+                return [PSCustomObject]@{ Primary = $gpu; Fallback = $cpu }
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        '.webm' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libvpx-vp9'
+                VideoArgs  = @('-crf', '31', '-b:v', '0', '-deadline', 'good', '-cpu-used', '2', '-row-mt', '1')
+                AudioCodec = 'libopus'
+                AudioArgs  = @('-b:a', '192k')
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        '.m4v' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libx264'
+                VideoArgs  = @('-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                AudioCodec = 'aac'
+                AudioArgs  = @('-b:a', '320k')
+            }
+
+            if ($NvencAvailable) {
+                $gpu = [PSCustomObject]@{
+                    ModeLabel  = 'NVIDIA GPU'
+                    VideoCodec = 'h264_nvenc'
+                    VideoArgs  = @('-preset', 'p5', '-cq', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                    AudioCodec = 'aac'
+                    AudioArgs  = @('-b:a', '320k')
+                }
+
+                return [PSCustomObject]@{ Primary = $gpu; Fallback = $cpu }
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        default {
+            throw 'Unsupported file format. Supported: .mp4, .mkv, .avi, .mov, .webm, .m4v'
+        }
+    }
+}
+
+function Normalize-VideoCropRect {
     param(
-        [Parameter(Mandatory = $true)][string]$ImagePath,
+        [Parameter(Mandatory = $true)][int]$X,
+        [Parameter(Mandatory = $true)][int]$Y,
+        [Parameter(Mandatory = $true)][int]$Width,
+        [Parameter(Mandatory = $true)][int]$Height,
         [Parameter(Mandatory = $true)][int]$SourceWidth,
         [Parameter(Mandatory = $true)][int]$SourceHeight
     )
 
+    if ($X -lt 0) { $X = 0 }
+    if ($Y -lt 0) { $Y = 0 }
+    if ($Width -lt 1) { $Width = 1 }
+    if ($Height -lt 1) { $Height = 1 }
+    if ($X + $Width -gt $SourceWidth) { $Width = $SourceWidth - $X }
+    if ($Y + $Height -gt $SourceHeight) { $Height = $SourceHeight - $Y }
+
+    if ($Width -gt 1 -and ($Width % 2) -ne 0) {
+        if ($X + $Width -lt $SourceWidth) { $Width++ } else { $Width-- }
+    }
+    if ($Height -gt 1 -and ($Height % 2) -ne 0) {
+        if ($Y + $Height -lt $SourceHeight) { $Height++ } else { $Height-- }
+    }
+    if ($X -gt 0 -and ($X % 2) -ne 0) { $X-- }
+    if ($Y -gt 0 -and ($Y % 2) -ne 0) { $Y-- }
+
+    if ($X + $Width -gt $SourceWidth) { $Width = $SourceWidth - $X }
+    if ($Y + $Height -gt $SourceHeight) { $Height = $SourceHeight - $Y }
+    if ($Width -lt 1) { $Width = 1 }
+    if ($Height -lt 1) { $Height = 1 }
+
+    return [PSCustomObject]@{
+        X      = $X
+        Y      = $Y
+        Width  = $Width
+        Height = $Height
+    }
+}
+
+function Show-CropWindow {
+    param(
+        [Parameter(Mandatory = $true)][string]$VideoPath,
+        [Parameter(Mandatory = $true)][string]$FfmpegPath,
+        [Parameter(Mandatory = $true)][int]$SourceWidth,
+        [Parameter(Mandatory = $true)][int]$SourceHeight,
+        [Parameter(Mandatory = $true)][double]$DurationSeconds
+    )
+
     [System.Windows.Forms.Application]::EnableVisualStyles()
 
-    $previewBitmap = New-PreviewBitmap -Path $ImagePath -MaxWidth 760 -MaxHeight 520
+    $script:previewBitmap = $null
     $script:backgroundBitmap = $null
     $script:cropRect = New-Object System.Drawing.RectangleF(0, 0, 1, 1)
     $script:imageBounds = New-Object System.Drawing.RectangleF(0, 0, 1, 1)
     $script:dragMode = ''
     $script:dragStart = New-Object System.Drawing.PointF(0, 0)
     $script:dragRect = New-Object System.Drawing.RectangleF(0, 0, 1, 1)
+    $script:pendingPreviewSeconds = 0.0
+    $script:currentPreviewSeconds = 0.0
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = 'FFActions - Crop image'
+    $form.Text = 'FFActions - Crop video'
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(940, 650)
+    $form.ClientSize = New-Object System.Drawing.Size(940, 690)
     $form.TopMost = $true
 
     $panel = New-Object System.Windows.Forms.Panel
     $panel.Location = New-Object System.Drawing.Point(12, 12)
-    $panel.Size = New-Object System.Drawing.Size(780, 560)
+    $panel.Size = New-Object System.Drawing.Size(780, 500)
     $panel.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
     Set-ControlDoubleBuffered -Control $panel
     $form.Controls.Add($panel)
+
+    $trackPreview = New-Object System.Windows.Forms.TrackBar
+    $trackPreview.Location = New-Object System.Drawing.Point(12, 524)
+    $trackPreview.Size = New-Object System.Drawing.Size(780, 45)
+    $trackPreview.Minimum = 0
+    $trackPreview.Maximum = 1000
+    $trackPreview.TickFrequency = 100
+    $trackPreview.SmallChange = 5
+    $trackPreview.LargeChange = 50
+    $form.Controls.Add($trackPreview)
+
+    $labelTimelineHint = New-Object System.Windows.Forms.Label
+    $labelTimelineHint.Location = New-Object System.Drawing.Point(12, 564)
+    $labelTimelineHint.Size = New-Object System.Drawing.Size(780, 20)
+    $labelTimelineHint.Text = 'Drag the slider to preview another moment of the video.'
+    $form.Controls.Add($labelTimelineHint)
 
     $group = New-Object System.Windows.Forms.GroupBox
     $group.Text = 'Ratio'
@@ -309,39 +579,64 @@ function Show-CropWindow {
         $radioButtons += $radio
     }
 
+    $labelInfo = New-Object System.Windows.Forms.Label
+    $labelInfo.Location = New-Object System.Drawing.Point(806, 206)
+    $labelInfo.Size = New-Object System.Drawing.Size(120, 60)
+    $labelInfo.Text = "Video:`r`n$SourceWidth x $SourceHeight`r`n$(Format-TimeForDisplay -Seconds $DurationSeconds)"
+    $form.Controls.Add($labelInfo)
+
+    $labelFrame = New-Object System.Windows.Forms.Label
+    $labelFrame.Location = New-Object System.Drawing.Point(806, 278)
+    $labelFrame.Size = New-Object System.Drawing.Size(120, 42)
+    $form.Controls.Add($labelFrame)
+
     $labelSize = New-Object System.Windows.Forms.Label
-    $labelSize.Location = New-Object System.Drawing.Point(806, 178)
+    $labelSize.Location = New-Object System.Drawing.Point(806, 332)
     $labelSize.Size = New-Object System.Drawing.Size(120, 42)
     $form.Controls.Add($labelSize)
 
     $buttonCenter = New-Object System.Windows.Forms.Button
     $buttonCenter.Text = 'Center'
-    $buttonCenter.Location = New-Object System.Drawing.Point(806, 238)
+    $buttonCenter.Location = New-Object System.Drawing.Point(806, 388)
     $buttonCenter.Size = New-Object System.Drawing.Size(120, 28)
     $form.Controls.Add($buttonCenter)
 
     $buttonReset = New-Object System.Windows.Forms.Button
     $buttonReset.Text = 'Reset'
-    $buttonReset.Location = New-Object System.Drawing.Point(806, 276)
+    $buttonReset.Location = New-Object System.Drawing.Point(806, 426)
     $buttonReset.Size = New-Object System.Drawing.Size(120, 28)
     $form.Controls.Add($buttonReset)
 
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(734, 604)
+    $buttonOK.Location = New-Object System.Drawing.Point(734, 650)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(836, 604)
+    $buttonCancel.Location = New-Object System.Drawing.Point(836, 650)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)
 
     $form.AcceptButton = $buttonOK
     $form.CancelButton = $buttonCancel
+
+    $previewTimer = New-Object System.Windows.Forms.Timer
+    $previewTimer.Interval = 140
+
+    function Dispose-PreviewBitmaps {
+        if ($script:backgroundBitmap) {
+            $script:backgroundBitmap.Dispose()
+            $script:backgroundBitmap = $null
+        }
+        if ($script:previewBitmap) {
+            $script:previewBitmap.Dispose()
+            $script:previewBitmap = $null
+        }
+    }
 
     function Get-SelectedRatioMode {
         $selected = $radioButtons | Where-Object { $_.Checked } | Select-Object -First 1
@@ -350,9 +645,9 @@ function Show-CropWindow {
     }
 
     function Update-ImageBounds {
-        $x = [Math]::Floor(($panel.ClientSize.Width - $previewBitmap.Width) / 2.0)
-        $y = [Math]::Floor(($panel.ClientSize.Height - $previewBitmap.Height) / 2.0)
-        $script:imageBounds = New-Object System.Drawing.RectangleF([float]$x, [float]$y, [float]$previewBitmap.Width, [float]$previewBitmap.Height)
+        $x = [Math]::Floor(($panel.ClientSize.Width - $script:previewBitmap.Width) / 2.0)
+        $y = [Math]::Floor(($panel.ClientSize.Height - $script:previewBitmap.Height) / 2.0)
+        $script:imageBounds = New-Object System.Drawing.RectangleF([float]$x, [float]$y, [float]$script:previewBitmap.Width, [float]$script:previewBitmap.Height)
 
         if ($script:backgroundBitmap) {
             $script:backgroundBitmap.Dispose()
@@ -363,7 +658,7 @@ function Show-CropWindow {
         $g = [System.Drawing.Graphics]::FromImage($script:backgroundBitmap)
         try {
             $g.Clear($panel.BackColor)
-            $g.DrawImageUnscaled($previewBitmap, [int]$script:imageBounds.X, [int]$script:imageBounds.Y)
+            $g.DrawImageUnscaled($script:previewBitmap, [int]$script:imageBounds.X, [int]$script:imageBounds.Y)
         }
         finally {
             $g.Dispose()
@@ -406,21 +701,31 @@ function Show-CropWindow {
         $w = [int][Math]::Round($script:cropRect.Width * $scaleX)
         $h = [int][Math]::Round($script:cropRect.Height * $scaleY)
 
-        if ($x -lt 0) { $x = 0 }
-        if ($y -lt 0) { $y = 0 }
-        if ($x -ge $SourceWidth) { $x = $SourceWidth - 1 }
-        if ($y -ge $SourceHeight) { $y = $SourceHeight - 1 }
-        if ($x + $w -gt $SourceWidth) { $w = $SourceWidth - $x }
-        if ($y + $h -gt $SourceHeight) { $h = $SourceHeight - $y }
-        if ($w -lt 1) { $w = 1 }
-        if ($h -lt 1) { $h = 1 }
+        return Normalize-VideoCropRect -X $x -Y $y -Width $w -Height $h -SourceWidth $SourceWidth -SourceHeight $SourceHeight
+    }
 
-        return [PSCustomObject]@{ X = $x; Y = $y; Width = $w; Height = $h }
+    function Set-CropRectFromSource {
+        param([Parameter(Mandatory = $true)]$SourceCrop)
+
+        $scaleX = $script:imageBounds.Width / [double]$SourceWidth
+        $scaleY = $script:imageBounds.Height / [double]$SourceHeight
+        $x = [float]($script:imageBounds.X + ($SourceCrop.X * $scaleX))
+        $y = [float]($script:imageBounds.Y + ($SourceCrop.Y * $scaleY))
+        $w = [float]($SourceCrop.Width * $scaleX)
+        $h = [float]($SourceCrop.Height * $scaleY)
+        $script:cropRect = New-Object System.Drawing.RectangleF($x, $y, $w, $h)
+        $script:cropRect = Clamp-CropRect -Rect $script:cropRect -Bounds $script:imageBounds -Ratio (Get-RatioValue -Mode (Get-SelectedRatioMode))
     }
 
     function Update-SizeLabel {
         $r = Get-SourceCropRect
         $labelSize.Text = "Crop:`r`n$($r.Width) x $($r.Height) px"
+    }
+
+    function Update-FrameLabel {
+        param([Parameter(Mandatory = $true)][double]$Seconds)
+
+        $labelFrame.Text = "Frame:`r`n$(Format-TimeForDisplay -Seconds $Seconds)"
     }
 
     function Request-CropRedraw {
@@ -476,6 +781,45 @@ function Show-CropWindow {
         Update-SizeLabel
         Request-CropRedraw -OldRect $oldRect -NewRect $script:cropRect
     }
+
+    function Load-PreviewFrame {
+        param(
+            [Parameter(Mandatory = $true)][double]$Seconds,
+            [bool]$PreserveCrop = $true
+        )
+
+        $oldSourceCrop = $null
+        if ($PreserveCrop -and $script:imageBounds.Width -gt 1 -and $script:imageBounds.Height -gt 1 -and $script:cropRect.Width -gt 1 -and $script:cropRect.Height -gt 1) {
+            $oldSourceCrop = Get-SourceCropRect
+        }
+
+        $newBitmap = New-VideoPreviewBitmap -InputFile $VideoPath -FfmpegPath $FfmpegPath -TimeSeconds $Seconds -MaxWidth 760 -MaxHeight 500
+        Dispose-PreviewBitmaps
+        $script:previewBitmap = $newBitmap
+        Update-ImageBounds
+
+        if ($oldSourceCrop) {
+            Set-CropRectFromSource -SourceCrop $oldSourceCrop
+        }
+        else {
+            Reset-CropRect
+        }
+
+        $script:currentPreviewSeconds = $Seconds
+        Update-FrameLabel -Seconds $Seconds
+        Update-SizeLabel
+        $panel.Invalidate()
+    }
+
+    $previewTimer.Add_Tick({
+        $previewTimer.Stop()
+        try {
+            Load-PreviewFrame -Seconds $script:pendingPreviewSeconds -PreserveCrop $true
+        }
+        catch {
+            Show-Error $_.Exception.Message
+        }
+    })
 
     $panel.Add_Paint({
         param($sender, $e)
@@ -614,36 +958,116 @@ function Show-CropWindow {
         Request-CropRedraw -OldRect $oldRect -NewRect $script:cropRect
     })
 
-    Update-ImageBounds
-    Reset-CropRect
-    Update-SizeLabel
+    $trackPreview.Add_ValueChanged({
+        $ratio = if ($trackPreview.Maximum -gt 0) { $trackPreview.Value / [double]$trackPreview.Maximum } else { 0.0 }
+        $safeDuration = [Math]::Max(0.0, $DurationSeconds - 0.05)
+        $script:pendingPreviewSeconds = [Math]::Min($safeDuration, ($DurationSeconds * $ratio))
+        Update-FrameLabel -Seconds $script:pendingPreviewSeconds
+        $previewTimer.Stop()
+        $previewTimer.Start()
+    })
+
+    $trackPreview.Add_MouseUp({
+        $previewTimer.Stop()
+        try {
+            Load-PreviewFrame -Seconds $script:pendingPreviewSeconds -PreserveCrop $true
+        }
+        catch {
+            Show-Error $_.Exception.Message
+        }
+    })
+
+    $trackPreview.Add_KeyUp({
+        $previewTimer.Stop()
+        try {
+            Load-PreviewFrame -Seconds $script:pendingPreviewSeconds -PreserveCrop $true
+        }
+        catch {
+            Show-Error $_.Exception.Message
+        }
+    })
+
+    try {
+        Load-PreviewFrame -Seconds 0.0 -PreserveCrop $false
+    }
+    catch {
+        Dispose-PreviewBitmaps
+        $form.Dispose()
+        throw
+    }
 
     $result = $form.ShowDialog()
+    $previewTimer.Stop()
     if ($result -ne [System.Windows.Forms.DialogResult]::OK) {
-        if ($script:backgroundBitmap) {
-            $script:backgroundBitmap.Dispose()
-            $script:backgroundBitmap = $null
-        }
-        $previewBitmap.Dispose()
+        Dispose-PreviewBitmaps
+        $previewTimer.Dispose()
         $form.Dispose()
         return $null
     }
 
     $sourceCrop = Get-SourceCropRect
-    if ($script:backgroundBitmap) {
-        $script:backgroundBitmap.Dispose()
-        $script:backgroundBitmap = $null
-    }
-    $previewBitmap.Dispose()
+    Dispose-PreviewBitmaps
+    $previewTimer.Dispose()
     $form.Dispose()
     return $sourceCrop
+}
+
+function Get-EnvironmentValue {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $value = [System.Environment]::GetEnvironmentVariable($Name, 'Process')
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $null
+    }
+
+    return $value.Trim()
+}
+
+function Get-AutomationCropRect {
+    param(
+        [Parameter(Mandatory = $true)][int]$SourceWidth,
+        [Parameter(Mandatory = $true)][int]$SourceHeight
+    )
+
+    $flag = Get-EnvironmentValue -Name 'FFACTIONS_VIDEO_CROP_AUTOMATION'
+    if ([string]::IsNullOrWhiteSpace($flag)) {
+        return $null
+    }
+
+    switch ($flag.ToLowerInvariant()) {
+        '1' {}
+        'true' {}
+        'yes' {}
+        default { return $null }
+    }
+
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+    $x = 0
+    $y = 0
+    $w = 0
+    $h = 0
+
+    if (-not [int]::TryParse((Get-EnvironmentValue -Name 'FFACTIONS_VIDEO_CROP_X'), [ref]$x)) {
+        throw 'Invalid or missing FFACTIONS_VIDEO_CROP_X.'
+    }
+    if (-not [int]::TryParse((Get-EnvironmentValue -Name 'FFACTIONS_VIDEO_CROP_Y'), [ref]$y)) {
+        throw 'Invalid or missing FFACTIONS_VIDEO_CROP_Y.'
+    }
+    if (-not [int]::TryParse((Get-EnvironmentValue -Name 'FFACTIONS_VIDEO_CROP_WIDTH'), [ref]$w)) {
+        throw 'Invalid or missing FFACTIONS_VIDEO_CROP_WIDTH.'
+    }
+    if (-not [int]::TryParse((Get-EnvironmentValue -Name 'FFACTIONS_VIDEO_CROP_HEIGHT'), [ref]$h)) {
+        throw 'Invalid or missing FFACTIONS_VIDEO_CROP_HEIGHT.'
+    }
+
+    return Normalize-VideoCropRect -X $x -Y $y -Width $w -Height $h -SourceWidth $SourceWidth -SourceHeight $SourceHeight
 }
 
 function New-FFmpegArguments {
     param(
         [Parameter(Mandatory = $true)][string]$InputFile,
         [Parameter(Mandatory = $true)][string]$OutputFile,
-        [Parameter(Mandatory = $true)][string]$Extension,
+        [Parameter(Mandatory = $true)]$EncodingProfile,
         [Parameter(Mandatory = $true)][int]$X,
         [Parameter(Mandatory = $true)][int]$Y,
         [Parameter(Mandatory = $true)][int]$Width,
@@ -651,37 +1075,27 @@ function New-FFmpegArguments {
     )
 
     $cropFilter = 'crop={0}:{1}:{2}:{3}' -f $Width, $Height, $X, $Y
-    $args = @(
+    $ffmpegArgs = @(
         '-hide_banner',
         '-loglevel', 'error',
+        '-progress', 'pipe:1',
+        '-nostats',
         '-y',
         '-i', $InputFile,
-        '-frames:v', '1',
-        '-vf', $cropFilter
+        '-map', '0:v:0?',
+        '-map', '0:a?',
+        '-sn',
+        '-dn',
+        '-vf', $cropFilter,
+        '-c:v', $EncodingProfile.VideoCodec
     )
 
-    switch ($Extension.ToLowerInvariant()) {
-        '.jpg' {
-            $args += @('-q:v', '2')
-        }
-        '.jpeg' {
-            $args += @('-q:v', '2')
-        }
-        '.webp' {
-            $args += @('-c:v', 'libwebp', '-quality', '90', '-compression_level', '4')
-        }
-        '.png' {
-            $args += @('-compression_level', '6')
-        }
-        '.bmp' {
-        }
-        default {
-            throw 'Unsupported output format. Only .png, .jpg, .jpeg, .webp and .bmp are supported.'
-        }
-    }
+    $ffmpegArgs += $EncodingProfile.VideoArgs
+    $ffmpegArgs += @('-c:a', $EncodingProfile.AudioCodec)
+    $ffmpegArgs += $EncodingProfile.AudioArgs
+    $ffmpegArgs += @($OutputFile)
 
-    $args += @($OutputFile)
-    return ,$args
+    return ,$ffmpegArgs
 }
 
 #__FFCOMMON_INJECT_HERE__
@@ -693,35 +1107,61 @@ try {
     }
 
     if (-not (Test-Path -LiteralPath $InputFile)) {
-        Show-Error 'Input file not found.'
+        Show-Error "Input file not found.`n$InputFile"
         exit 1
     }
 
     $sourceExtension = [System.IO.Path]::GetExtension($InputFile).ToLowerInvariant()
-    if ($sourceExtension -notin @('.png', '.jpg', '.jpeg', '.webp', '.bmp')) {
-        Show-Error 'Unsupported input format. Only .png, .jpg, .jpeg, .webp and .bmp are supported.'
+    if ($sourceExtension -notin @('.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v')) {
+        Show-Error 'Unsupported source format. Supported video formats: .mp4, .mkv, .avi, .mov, .webm, .m4v'
         exit 1
     }
 
-    $ffmpeg = Get-ToolPath 'ffmpeg.exe'
-    if (-not (Test-Path -LiteralPath $ffmpeg)) {
-        Show-Error 'ffmpeg.exe not found.'
+    $ffmpegPath = Get-ToolPath 'ffmpeg.exe'
+    $ffprobePath = Get-ToolPath 'ffprobe.exe'
+    if (-not (Test-Path -LiteralPath $ffmpegPath)) {
+        Show-Error "ffmpeg.exe not found.`n$ffmpegPath"
+        exit 1
+    }
+    if (-not (Test-Path -LiteralPath $ffprobePath)) {
+        Show-Error "ffprobe.exe not found.`n$ffprobePath"
         exit 1
     }
 
-    $info = Get-ImageInfo -Path $InputFile
-    $crop = Show-CropWindow -ImagePath $InputFile -SourceWidth $info.Width -SourceHeight $info.Height
+    $videoInfo = Get-VideoInfo -FfprobePath $ffprobePath -FilePath $InputFile
+    $crop = Get-AutomationCropRect -SourceWidth $videoInfo.Width -SourceHeight $videoInfo.Height
     if ($null -eq $crop) {
-        exit 0
+        $crop = Show-CropWindow -VideoPath $InputFile -FfmpegPath $ffmpegPath -SourceWidth $videoInfo.Width -SourceHeight $videoInfo.Height -DurationSeconds $videoInfo.DurationSeconds
+        if ($null -eq $crop) {
+            exit 0
+        }
     }
+
+    $nvencAvailable = Test-NvencAvailable -FfmpegPath $ffmpegPath
+    $encodingPlan = Get-EncodingPlan -TargetExtension $sourceExtension -NvencAvailable $nvencAvailable
 
     $inputDir = Split-Path -Parent $InputFile
     $inputBase = [System.IO.Path]::GetFileNameWithoutExtension($InputFile)
     $desiredOutput = Join-Path $inputDir ($inputBase + '_crop' + $sourceExtension)
     $script:OutputFile = Get-UniqueOutputPath -DesiredPath $desiredOutput
 
-    $ffmpegArgs = New-FFmpegArguments -InputFile $InputFile -OutputFile $script:OutputFile -Extension $sourceExtension -X $crop.X -Y $crop.Y -Width $crop.Width -Height $crop.Height
-    $result = Invoke-HiddenProcess -FilePath $ffmpeg -Arguments $ffmpegArgs
+    $result = Invoke-WithEncodingPlan `
+        -FfmpegPath $ffmpegPath `
+        -EncodingPlan $encodingPlan `
+        -DurationSeconds ([double]$videoInfo.DurationSeconds) `
+        -Title 'Crop video' `
+        -PreparingText 'Preparing video crop...' `
+        -FallbackPreparingText 'GPU unavailable. Retrying in CPU mode...' `
+        -OutputFile $script:OutputFile `
+        -ArgumentFactory {
+            param($profile)
+            New-FFmpegArguments -InputFile $InputFile -OutputFile $script:OutputFile -EncodingProfile $profile -X $crop.X -Y $crop.Y -Width $crop.Width -Height $crop.Height
+        }
+
+    if ($result.Cancelled) {
+        Remove-PartialOutput -Path $script:OutputFile
+        exit 0
+    }
 
     if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $script:OutputFile)) {
         Remove-PartialOutput -Path $script:OutputFile
@@ -732,8 +1172,14 @@ try {
     exit 0
 }
 catch {
+    if ($script:OutputFile) {
+        Remove-PartialOutput -Path $script:OutputFile
+    }
+
     $message = $_.Exception.Message
-    if ([string]::IsNullOrWhiteSpace($message)) { $message = 'Unknown image crop error.' }
+    if ([string]::IsNullOrWhiteSpace($message)) {
+        $message = 'Unknown video crop error.'
+    }
     Show-Error $message
     exit 1
 }

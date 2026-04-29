@@ -1,6 +1,6 @@
 # FFActions
 
-Version: `1.1.0`
+Version: `1.2.0`
 
 ---
 
@@ -54,6 +54,38 @@ Remove the audio track from a video.
 
 Formats: `mp4 mkv avi mov webm m4v`
 
+## Extract Audio
+
+Extract the audio track from a video.
+
+The action opens a small format picker, then launches the extraction.
+
+Input formats: `mp4 mkv avi mov webm m4v`
+
+Output formats: `mp3 wav flac m4a ogg`
+
+## Create GIF
+
+Create a GIF from a video with simple presets for resolution, FPS and quality.
+
+Formats: `mp4 mkv avi mov webm m4v`
+
+## Resize Video
+
+Resize a video using pixels or percentage.
+
+Options: width/height in px, width/height in %, keep ratio, presets `x0.5 x0.75 x1.5 x2 x4`
+
+Formats: `mp4 mkv avi mov webm m4v`
+
+## Crop Video
+
+Visual crop tool with frame preview and a timeline slider to inspect another moment of the video before applying one fixed crop to the full file.
+
+Options: free, square, `16:9`, `9:16`, `4:3`, timeline preview, center, reset
+
+Formats: `mp4 mkv avi mov webm m4v`
+
 ## Rotate / Flip Video
 
 Rotate or mirror a video while keeping the same container format.
@@ -74,6 +106,8 @@ Formats: `mp4 mkv avi mov webm m4v`
 
 Convert a video from one format to another.
 
+The action opens a small format picker, then launches the conversion.
+
 Input/output formats: `mp4 mkv avi mov webm m4v`
 
 ---
@@ -89,6 +123,8 @@ Formats: `mp3 wav flac m4a ogg`
 ## Convert Audio
 
 Convert an audio file from one format to another.
+
+The action opens a small format picker, then launches the conversion.
 
 Input/output formats: `mp3 wav flac m4a ogg`
 
@@ -138,6 +174,8 @@ Formats: `png jpg jpeg webp bmp`
 
 Convert an image from one format to another.
 
+The action opens a small format picker, then launches the conversion.
+
 Input formats: `png jpg jpeg webp bmp`
 
 Output formats: `png jpg webp bmp`
@@ -162,7 +200,7 @@ Formats: `png jpg jpeg webp bmp`
 
 Visual crop tool with live preview.
 
-Options: free, square, `16:9`, `4:3`, center, reset
+Options: free, square, `16:9`, `9:16`, `4:3`, center, reset
 
 Formats: `png jpg jpeg webp bmp`
 

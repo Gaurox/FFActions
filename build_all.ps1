@@ -1,5 +1,5 @@
 param(
-    [string]$Version = '1.1.0',
+    [string]$Version = '1.2.0',
     [string]$Company = 'FFActions contributors',
     [string]$Product = 'FFActions'
 )
@@ -83,6 +83,24 @@ Build-Action `
     -Title        'FFActions - Interpolate'
 
 Build-Action `
+    -TemplateFile (Join-Path $base 'create_gif.template.ps1') `
+    -OutputPs1    (Join-Path $base 'create_gif.ps1') `
+    -OutputExe    (Join-Path $base 'create_gif.exe') `
+    -Title        'FFActions - Create GIF'
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'convert_video_picker.template.ps1') `
+    -OutputPs1    (Join-Path $base 'convert_video_picker.ps1') `
+    -OutputExe    (Join-Path $base 'convert_video_picker.exe') `
+    -Title        'FFActions - Convert Video'
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'resize_video.template.ps1') `
+    -OutputPs1    (Join-Path $base 'resize_video.ps1') `
+    -OutputExe    (Join-Path $base 'resize_video.exe') `
+    -Title        'FFActions - Resize Video'
+
+Build-Action `
     -TemplateFile (Join-Path $base 'remove_audio.template.ps1') `
     -OutputPs1    (Join-Path $base 'remove_audio.ps1') `
     -OutputExe    (Join-Path $base 'remove_audio.exe') `
@@ -137,6 +155,12 @@ Invoke-GeneratedScriptBuild `
     -TemplateFile (Join-Path $base 'convert_audio.template.ps1') `
     -OutputPs1    (Join-Path $base 'convert_audio.ps1')
 
+Build-Action `
+    -TemplateFile (Join-Path $base 'convert_audio_picker.template.ps1') `
+    -OutputPs1    (Join-Path $base 'convert_audio_picker.ps1') `
+    -OutputExe    (Join-Path $base 'convert_audio_picker.exe') `
+    -Title        'FFActions - Convert Audio'
+
 Invoke-ExeBuild `
     -InputFile  (Join-Path $base 'convert_audio.ps1') `
     -OutputFile (Join-Path $base 'convert_audio_to_mp3.exe') `
@@ -163,8 +187,49 @@ Invoke-ExeBuild `
     -Title      'FFActions - Convert Audio to OGG'
 
 Invoke-GeneratedScriptBuild `
+    -TemplateFile (Join-Path $base 'extract_audio.template.ps1') `
+    -OutputPs1    (Join-Path $base 'extract_audio.ps1')
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'extract_audio_picker.template.ps1') `
+    -OutputPs1    (Join-Path $base 'extract_audio_picker.ps1') `
+    -OutputExe    (Join-Path $base 'extract_audio_picker.exe') `
+    -Title        'FFActions - Extract Audio'
+
+Invoke-ExeBuild `
+    -InputFile  (Join-Path $base 'extract_audio.ps1') `
+    -OutputFile (Join-Path $base 'extract_audio_to_mp3.exe') `
+    -Title      'FFActions - Extract Audio to MP3'
+
+Invoke-ExeBuild `
+    -InputFile  (Join-Path $base 'extract_audio.ps1') `
+    -OutputFile (Join-Path $base 'extract_audio_to_wav.exe') `
+    -Title      'FFActions - Extract Audio to WAV'
+
+Invoke-ExeBuild `
+    -InputFile  (Join-Path $base 'extract_audio.ps1') `
+    -OutputFile (Join-Path $base 'extract_audio_to_flac.exe') `
+    -Title      'FFActions - Extract Audio to FLAC'
+
+Invoke-ExeBuild `
+    -InputFile  (Join-Path $base 'extract_audio.ps1') `
+    -OutputFile (Join-Path $base 'extract_audio_to_m4a.exe') `
+    -Title      'FFActions - Extract Audio to M4A'
+
+Invoke-ExeBuild `
+    -InputFile  (Join-Path $base 'extract_audio.ps1') `
+    -OutputFile (Join-Path $base 'extract_audio_to_ogg.exe') `
+    -Title      'FFActions - Extract Audio to OGG'
+
+Invoke-GeneratedScriptBuild `
     -TemplateFile (Join-Path $base 'convert_image.template.ps1') `
     -OutputPs1    (Join-Path $base 'convert_image.ps1')
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'convert_image_picker.template.ps1') `
+    -OutputPs1    (Join-Path $base 'convert_image_picker.ps1') `
+    -OutputExe    (Join-Path $base 'convert_image_picker.exe') `
+    -Title        'FFActions - Convert Image'
 
 Invoke-ExeBuild `
     -InputFile  (Join-Path $base 'convert_image.ps1') `
@@ -203,6 +268,12 @@ Build-Action `
     -OutputPs1    (Join-Path $base 'crop_image.ps1') `
     -OutputExe    (Join-Path $base 'crop_image.exe') `
     -Title        'FFActions - Crop Image'
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'crop_video.template.ps1') `
+    -OutputPs1    (Join-Path $base 'crop_video.ps1') `
+    -OutputExe    (Join-Path $base 'crop_video.exe') `
+    -Title        'FFActions - Crop Video'
 
 Build-Action `
     -TemplateFile (Join-Path $base 'convert_icon.template.ps1') `
