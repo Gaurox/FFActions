@@ -1,5 +1,5 @@
 param(
-    [string]$Version = '1.0.0',
+    [string]$Version = '1.1.0',
     [string]$Company = 'FFActions contributors',
     [string]$Product = 'FFActions'
 )
@@ -89,6 +89,18 @@ Build-Action `
     -Title        'FFActions - Remove Audio'
 
 Build-Action `
+    -TemplateFile (Join-Path $base 'rotate_video.template.ps1') `
+    -OutputPs1    (Join-Path $base 'rotate_video.ps1') `
+    -OutputExe    (Join-Path $base 'rotate_video.exe') `
+    -Title        'FFActions - Rotate or Flip Video'
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'compress_video.template.ps1') `
+    -OutputPs1    (Join-Path $base 'compress_video.ps1') `
+    -OutputExe    (Join-Path $base 'compress_video.exe') `
+    -Title        'FFActions - Compress Video'
+
+Build-Action `
     -TemplateFile (Join-Path $base 'cut_audio.template.ps1') `
     -OutputPs1    (Join-Path $base 'cut_audio.ps1') `
     -OutputExe    (Join-Path $base 'cut_audio.exe') `
@@ -99,6 +111,18 @@ Build-Action `
     -OutputPs1    (Join-Path $base 'change_audio_speed.ps1') `
     -OutputExe    (Join-Path $base 'change_audio_speed.exe') `
     -Title        'FFActions - Change Audio Speed'
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'reverse_audio.template.ps1') `
+    -OutputPs1    (Join-Path $base 'reverse_audio.ps1') `
+    -OutputExe    (Join-Path $base 'reverse_audio.exe') `
+    -Title        'FFActions - Reverse Audio'
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'compress_audio.template.ps1') `
+    -OutputPs1    (Join-Path $base 'compress_audio.ps1') `
+    -OutputExe    (Join-Path $base 'compress_audio.exe') `
+    -Title        'FFActions - Compress Audio'
 
 Invoke-GeneratedScriptBuild `
     -TemplateFile (Join-Path $base 'change_audio_pitch.template.ps1') `
@@ -204,6 +228,21 @@ Invoke-ExeBuild `
     -InputFile  (Join-Path $base 'convert_video.ps1') `
     -OutputFile (Join-Path $base 'convert_to_avi.exe') `
     -Title      'FFActions - Convert Video to AVI'
+
+Invoke-ExeBuild `
+    -InputFile  (Join-Path $base 'convert_video.ps1') `
+    -OutputFile (Join-Path $base 'convert_to_mov.exe') `
+    -Title      'FFActions - Convert Video to MOV'
+
+Invoke-ExeBuild `
+    -InputFile  (Join-Path $base 'convert_video.ps1') `
+    -OutputFile (Join-Path $base 'convert_to_webm.exe') `
+    -Title      'FFActions - Convert Video to WEBM'
+
+Invoke-ExeBuild `
+    -InputFile  (Join-Path $base 'convert_video.ps1') `
+    -OutputFile (Join-Path $base 'convert_to_m4v.exe') `
+    -Title      'FFActions - Convert Video to M4V'
 
 Write-Host ''
 Write-Host "Build complete. Version: $Version"

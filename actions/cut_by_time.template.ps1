@@ -161,8 +161,65 @@ function Get-EncodingPlan {
 
             return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
         }
+        '.mov' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libx264'
+                VideoArgs  = @('-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                AudioCodec = 'aac'
+                AudioArgs  = @('-b:a', '320k')
+            }
+
+            if ($NvencAvailable) {
+                $gpu = [PSCustomObject]@{
+                    ModeLabel  = 'NVIDIA GPU'
+                    VideoCodec = 'h264_nvenc'
+                    VideoArgs  = @('-preset', 'p5', '-cq', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                    AudioCodec = 'aac'
+                    AudioArgs  = @('-b:a', '320k')
+                }
+
+                return [PSCustomObject]@{ Primary = $gpu; Fallback = $cpu }
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        '.webm' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libvpx-vp9'
+                VideoArgs  = @('-crf', '31', '-b:v', '0', '-deadline', 'good', '-cpu-used', '2', '-row-mt', '1')
+                AudioCodec = 'libopus'
+                AudioArgs  = @('-b:a', '192k')
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        '.m4v' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libx264'
+                VideoArgs  = @('-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                AudioCodec = 'aac'
+                AudioArgs  = @('-b:a', '320k')
+            }
+
+            if ($NvencAvailable) {
+                $gpu = [PSCustomObject]@{
+                    ModeLabel  = 'NVIDIA GPU'
+                    VideoCodec = 'h264_nvenc'
+                    VideoArgs  = @('-preset', 'p5', '-cq', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                    AudioCodec = 'aac'
+                    AudioArgs  = @('-b:a', '320k')
+                }
+
+                return [PSCustomObject]@{ Primary = $gpu; Fallback = $cpu }
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
         default {
-            throw 'Unsupported input format. Only .mp4, .mkv and .avi are supported.'
+            throw 'Unsupported input format. Only .mp4, .mkv, .avi, .mov, .webm and .m4v are supported.'
         }
     }
 }
@@ -367,8 +424,8 @@ if (-not (Test-Path -LiteralPath $InputFile)) {
 }
 
 $inputExt = [System.IO.Path]::GetExtension($InputFile).ToLowerInvariant()
-if ($inputExt -notin @('.mp4', '.mkv', '.avi')) {
-    Show-ErrorAndExit 'Unsupported input format. Only .mp4, .mkv and .avi are supported.'
+if ($inputExt -notin @('.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v')) {
+    Show-ErrorAndExit 'Unsupported input format. Only .mp4, .mkv, .avi, .mov, .webm and .m4v are supported.'
 }
 
 $ffmpeg = Get-ToolPath -ToolName 'ffmpeg.exe'

@@ -1,6 +1,6 @@
 # FFActions
 
-Version: `1.0.0`
+Version: `1.1.0`
 
 ---
 
@@ -34,31 +34,47 @@ The installer offers these modules:
 
 Precise cutting based on exact frame numbers.
 
-Formats: `mp4 mkv avi`
+Formats: `mp4 mkv avi mov webm m4v`
 
 ## Cut by Time
 
 Cut a video using start and end times.
 
-Formats: `mp4 mkv avi`
+Formats: `mp4 mkv avi mov webm m4v`
 
 ## Interpolate
 
 Increase motion smoothness by generating intermediate frames.
 
-Formats: `mp4 mkv avi`
+Formats: `mp4 mkv avi mov webm m4v`
 
 ## Remove Audio
 
 Remove the audio track from a video.
 
-Formats: `mp4 mkv avi`
+Formats: `mp4 mkv avi mov webm m4v`
+
+## Rotate / Flip Video
+
+Rotate or mirror a video while keeping the same container format.
+
+Options: `90 180 270 horizontal vertical`
+
+Formats: `mp4 mkv avi mov webm m4v`
+
+## Compress Video
+
+Compress a video with simple quality presets.
+
+Options: `High quality Balanced Small file`, optional target size
+
+Formats: `mp4 mkv avi mov webm m4v`
 
 ## Convert Video
 
 Convert a video from one format to another.
 
-Input/output formats: `mp4 mkv avi`
+Input/output formats: `mp4 mkv avi mov webm m4v`
 
 ---
 
@@ -89,6 +105,20 @@ Formats: `mp3 wav flac m4a ogg`
 Adjust audio pitch.
 
 Options: semitones, percentage, duration preservation
+
+Formats: `mp3 wav flac m4a ogg`
+
+## Reverse Audio
+
+Reverse an audio file so it plays backward.
+
+Formats: `mp3 wav flac m4a ogg`
+
+## Compress Audio
+
+Compress an audio file with simple quality presets.
+
+Options: `High quality Balanced Small file`, optional target size
 
 Formats: `mp3 wav flac m4a ogg`
 
@@ -225,7 +255,7 @@ For full local builds, the project expects:
 Example to rebuild all local executables:
 
 ```powershell
-.\build_all.ps1 -Version 1.0.0
+.\build_all.ps1 -Version 1.1.0
 ```
 
 Example to build the installer after that:

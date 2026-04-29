@@ -148,6 +148,11 @@ if (-not (Test-Path -LiteralPath $inputFile)) {
     Show-ErrorAndExit "Input file not found.`n$inputFile"
 }
 
+$extension = [System.IO.Path]::GetExtension($inputFile).ToLowerInvariant()
+if ($extension -notin @('.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v')) {
+    Show-ErrorAndExit 'Unsupported input format. Only .mp4, .mkv, .avi, .mov, .webm and .m4v are supported.'
+}
+
 $appRoot = Get-AppRoot
 $ffmpeg = Join-Path $appRoot "tools\ffmpeg\ffmpeg.exe"
 $ffprobe = Join-Path $appRoot "tools\ffmpeg\ffprobe.exe"
@@ -345,8 +350,6 @@ $targetFpsText = Get-DecimalString $targetFps
 
 $inputDir = Split-Path -Parent $inputFile
 $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputFile)
-$extension = [System.IO.Path]::GetExtension($inputFile)
-
 $outputFile = Join-Path $inputDir ($baseName + '_interp_' + $targetFpsText + 'fps' + $extension)
 $index = 1
 while (Test-Path -LiteralPath $outputFile) {
@@ -368,20 +371,61 @@ $progressUi.Form.Show()
 $ffmpegResult = $null
 
 try {
-    $ffmpegResult = Invoke-FFmpegWithProgress -FfmpegPath $ffmpeg -Arguments @(
-        '-hide_banner',
-        '-loglevel', 'error',
-        '-progress', 'pipe:1',
-        '-nostats',
-        '-y',
-        '-i', $inputFile,
-        '-vf', "minterpolate=fps=$targetFpsText",
-        '-c:v', 'libx264',
-        '-preset', 'medium',
-        '-crf', '18',
-        '-c:a', 'copy',
-        $outputFile
-    ) -DurationSeconds $durationSeconds -OutputFile $outputFile -StatusText 'Interpolating...' -ModeLabel 'CPU' -ProgressContext $progressUi
+    $ffmpegArgs = switch ($extension) {
+        '.avi' {
+            @(
+                '-hide_banner',
+                '-loglevel', 'error',
+                '-progress', 'pipe:1',
+                '-nostats',
+                '-y',
+                '-i', $inputFile,
+                '-vf', "minterpolate=fps=$targetFpsText",
+                '-c:v', 'mpeg4',
+                '-q:v', '2',
+                '-c:a', 'copy',
+                $outputFile
+            )
+        }
+        '.webm' {
+            @(
+                '-hide_banner',
+                '-loglevel', 'error',
+                '-progress', 'pipe:1',
+                '-nostats',
+                '-y',
+                '-i', $inputFile,
+                '-vf', "minterpolate=fps=$targetFpsText",
+                '-c:v', 'libvpx-vp9',
+                '-crf', '31',
+                '-b:v', '0',
+                '-deadline', 'good',
+                '-cpu-used', '2',
+                '-row-mt', '1',
+                '-c:a', 'copy',
+                $outputFile
+            )
+        }
+        default {
+            @(
+                '-hide_banner',
+                '-loglevel', 'error',
+                '-progress', 'pipe:1',
+                '-nostats',
+                '-y',
+                '-i', $inputFile,
+                '-vf', "minterpolate=fps=$targetFpsText",
+                '-c:v', 'libx264',
+                '-preset', 'medium',
+                '-crf', '18',
+                '-pix_fmt', 'yuv420p',
+                '-c:a', 'copy',
+                $outputFile
+            )
+        }
+    }
+
+    $ffmpegResult = Invoke-FFmpegWithProgress -FfmpegPath $ffmpeg -Arguments $ffmpegArgs -DurationSeconds $durationSeconds -OutputFile $outputFile -StatusText 'Interpolating...' -ModeLabel 'CPU' -ProgressContext $progressUi
 }
 catch {
     if ($progressUi -and $progressUi.Form -and -not $progressUi.Form.IsDisposed) {

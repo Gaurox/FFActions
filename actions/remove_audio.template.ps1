@@ -200,8 +200,8 @@ if (-not (Test-Path -LiteralPath $InputFile)) {
 }
 
 $extension = [System.IO.Path]::GetExtension($InputFile).ToLowerInvariant()
-if ($extension -notin @('.mp4', '.mkv', '.avi')) {
-    Show-ErrorAndExit 'Unsupported file format. Supported: .mp4, .mkv, .avi'
+if ($extension -notin @('.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v')) {
+    Show-ErrorAndExit 'Unsupported file format. Supported: .mp4, .mkv, .avi, .mov, .webm, .m4v'
 }
 
 $ffmpegPath = Get-ToolPath -ToolName 'ffmpeg.exe'

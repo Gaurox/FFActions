@@ -1,6 +1,6 @@
 [Setup]
 AppName=FFActions
-AppVersion=1.0.0
+AppVersion=1.1.0
 DefaultDirName={autopf}\FFActions
 DefaultGroupName=FFActions
 OutputDir=.
@@ -32,10 +32,14 @@ Name: "video\cut_by_frame"; Description: "Cut by frame"; Types: complete custom
 Name: "video\cut_by_time"; Description: "Cut by time"; Types: complete custom
 Name: "video\interpolate"; Description: "Interpolate"; Types: complete custom
 Name: "video\remove_audio"; Description: "Remove audio"; Types: complete custom
+Name: "video\rotate"; Description: "Rotate / flip"; Types: complete custom
+Name: "video\compress"; Description: "Compress video"; Types: complete custom
 Name: "video\convert"; Description: "Convert"; Types: complete custom
 Name: "audio"; Description: "Audio"; Types: complete custom
 Name: "audio\cut_audio"; Description: "Cut audio"; Types: complete custom
 Name: "audio\change_speed"; Description: "Change speed"; Types: complete custom
+Name: "audio\reverse"; Description: "Reverse audio"; Types: complete custom
+Name: "audio\compress"; Description: "Compress audio"; Types: complete custom
 Name: "audio\change_pitch"; Description: "Change pitch"; Types: complete custom
 Name: "audio\convert"; Description: "Convert"; Types: complete custom
 Name: "image"; Description: "Image"; Types: complete custom
@@ -53,9 +57,16 @@ Source: "actions\interpolate.exe"; DestDir: "{app}\actions"; Flags: ignoreversio
 Source: "actions\convert_to_mp4.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
 Source: "actions\convert_to_mkv.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
 Source: "actions\convert_to_avi.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
+Source: "actions\convert_to_mov.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
+Source: "actions\convert_to_webm.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
+Source: "actions\convert_to_m4v.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
 Source: "actions\remove_audio.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\remove_audio
+Source: "actions\rotate_video.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\rotate
+Source: "actions\compress_video.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\compress
 Source: "actions\cut_audio.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: audio\cut_audio
 Source: "actions\change_audio_speed.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: audio\change_speed
+Source: "actions\reverse_audio.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: audio\reverse
+Source: "actions\compress_audio.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: audio\compress
 Source: "actions\change_audio_pitch.ps1"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: audio\change_pitch
 Source: "actions\change_audio_pitch.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: audio\change_pitch
 Source: "actions\convert_audio_to_mp3.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: audio\convert
@@ -73,9 +84,9 @@ Source: "actions\flip_image.exe"; DestDir: "{app}\actions"; Flags: ignoreversion
 Source: "actions\crop_image.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: image\crop
 Source: "actions\convert_icon.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: image\icon
 
-Source: "tools\ffmpeg\ffmpeg.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert audio\cut_audio audio\change_speed audio\change_pitch audio\convert image\convert image\compress image\flip image\crop image\icon
-Source: "tools\ffmpeg\ffprobe.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Source: "tools\icons\ffactions.ico"; DestDir: "{app}\tools\icons"; DestName: "ffactions.ico"; Flags: ignoreversion; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert audio\cut_audio audio\change_speed audio\change_pitch audio\convert image\resize_image image\convert image\compress image\flip image\crop image\icon
+Source: "tools\ffmpeg\ffmpeg.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\convert image\compress image\flip image\crop image\icon
+Source: "tools\ffmpeg\ffprobe.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Source: "tools\icons\ffactions.ico"; DestDir: "{app}\tools\icons"; DestName: "ffactions.ico"; Flags: ignoreversion; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\resize_image image\convert image\compress image\flip image\crop image\icon
 
 [InstallDelete]
 Type: files; Name: "{app}\actions\cut_by_frame.exe"
@@ -84,9 +95,16 @@ Type: files; Name: "{app}\actions\interpolate.exe"
 Type: files; Name: "{app}\actions\convert_to_mp4.exe"
 Type: files; Name: "{app}\actions\convert_to_mkv.exe"
 Type: files; Name: "{app}\actions\convert_to_avi.exe"
+Type: files; Name: "{app}\actions\convert_to_mov.exe"
+Type: files; Name: "{app}\actions\convert_to_webm.exe"
+Type: files; Name: "{app}\actions\convert_to_m4v.exe"
 Type: files; Name: "{app}\actions\remove_audio.exe"
+Type: files; Name: "{app}\actions\rotate_video.exe"
+Type: files; Name: "{app}\actions\compress_video.exe"
 Type: files; Name: "{app}\actions\cut_audio.exe"
 Type: files; Name: "{app}\actions\change_audio_speed.exe"
+Type: files; Name: "{app}\actions\reverse_audio.exe"
+Type: files; Name: "{app}\actions\compress_audio.exe"
 Type: files; Name: "{app}\actions\change_audio_pitch.exe"
 Type: files; Name: "{app}\actions\convert_audio_to_mp3.exe"
 Type: files; Name: "{app}\actions\convert_audio_to_wav.exe"
@@ -110,9 +128,9 @@ Type: files; Name: "{app}\tools\icons\ffactions.ico"
 ; ========================
 ; .mp4
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
@@ -121,19 +139,29 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFAction
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\remove_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\remove_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\remove_audio
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\rotate_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "rotate / flip"; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\rotate_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\rotate_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\compress_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress video"; Flags: uninsdeletekey; Components: video\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\compress_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\compress
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_mkv"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mkv"; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_mkv\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mkv.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_avi"; ValueType: string; ValueName: "MUIVerb"; ValueData: "avi"; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_avi\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_avi.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_mov"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mov"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_mov\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mov.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_webm"; ValueType: string; ValueName: "MUIVerb"; ValueData: "webm"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_webm\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_webm.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_m4v"; ValueType: string; ValueName: "MUIVerb"; ValueData: "m4v"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\convert\shell\to_m4v\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_m4v.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
 
 ; ========================
 ; .mkv
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
@@ -142,19 +170,29 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFAction
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\remove_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\remove_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\remove_audio
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\rotate_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "rotate / flip"; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\rotate_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\rotate_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\compress_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress video"; Flags: uninsdeletekey; Components: video\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\compress_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\compress
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_mp4"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mp4"; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_mp4\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mp4.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_avi"; ValueType: string; ValueName: "MUIVerb"; ValueData: "avi"; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_avi\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_avi.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_mov"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mov"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_mov\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mov.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_webm"; ValueType: string; ValueName: "MUIVerb"; ValueData: "webm"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_webm\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_webm.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_m4v"; ValueType: string; ValueName: "MUIVerb"; ValueData: "m4v"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\convert\shell\to_m4v\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_m4v.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
 
 ; ========================
 ; .avi
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
@@ -163,25 +201,135 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFAction
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\remove_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\remove_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\remove_audio
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\rotate_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "rotate / flip"; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\rotate_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\rotate_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\compress_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress video"; Flags: uninsdeletekey; Components: video\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\compress_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\compress
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_mp4"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mp4"; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_mp4\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mp4.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_mkv"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mkv"; Flags: uninsdeletekey; Components: video\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_mkv\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mkv.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_mov"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mov"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_mov\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mov.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_webm"; ValueType: string; ValueName: "MUIVerb"; ValueData: "webm"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_webm\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_webm.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_m4v"; ValueType: string; ValueName: "MUIVerb"; ValueData: "m4v"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\convert\shell\to_m4v\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_m4v.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+
+; ========================
+; .mov
+; ========================
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_by_time\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_time.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\interpolate"; ValueType: string; ValueName: "MUIVerb"; ValueData: "interpolate"; Flags: uninsdeletekey; Components: video\interpolate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\remove_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\remove_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\remove_audio
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\rotate_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "rotate / flip"; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\rotate_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\rotate_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\compress_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress video"; Flags: uninsdeletekey; Components: video\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\compress_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_mp4"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mp4"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_mp4\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mp4.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_mkv"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mkv"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_mkv\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mkv.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_avi"; ValueType: string; ValueName: "MUIVerb"; ValueData: "avi"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_avi\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_avi.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_webm"; ValueType: string; ValueName: "MUIVerb"; ValueData: "webm"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_webm\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_webm.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_m4v"; ValueType: string; ValueName: "MUIVerb"; ValueData: "m4v"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\convert\shell\to_m4v\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_m4v.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+
+; ========================
+; .webm
+; ========================
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_by_time\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_time.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\interpolate"; ValueType: string; ValueName: "MUIVerb"; ValueData: "interpolate"; Flags: uninsdeletekey; Components: video\interpolate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\remove_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\remove_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\remove_audio
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\rotate_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "rotate / flip"; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\rotate_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\rotate_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\compress_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress video"; Flags: uninsdeletekey; Components: video\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\compress_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_mp4"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mp4"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_mp4\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mp4.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_mkv"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mkv"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_mkv\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mkv.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_avi"; ValueType: string; ValueName: "MUIVerb"; ValueData: "avi"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_avi\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_avi.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_mov"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mov"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_mov\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mov.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_m4v"; ValueType: string; ValueName: "MUIVerb"; ValueData: "m4v"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\convert\shell\to_m4v\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_m4v.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+
+; ========================
+; .m4v
+; ========================
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_by_time\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_time.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\interpolate"; ValueType: string; ValueName: "MUIVerb"; ValueData: "interpolate"; Flags: uninsdeletekey; Components: video\interpolate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\remove_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\remove_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\remove_audio
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\rotate_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "rotate / flip"; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\rotate_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\rotate_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\rotate
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\compress_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress video"; Flags: uninsdeletekey; Components: video\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\compress_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_mp4"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mp4"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_mp4\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mp4.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_mkv"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mkv"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_mkv\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mkv.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_avi"; ValueType: string; ValueName: "MUIVerb"; ValueData: "avi"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_avi\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_avi.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_mov"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mov"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_mov\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_mov.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_webm"; ValueType: string; ValueName: "MUIVerb"; ValueData: "webm"; Flags: uninsdeletekey; Components: video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\convert\shell\to_webm\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_to_webm.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\convert
 
 ; ========================
 ; .wav
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
+; ========================
+; .wav
+; ========================
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\cut_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut audio"; Flags: uninsdeletekey; Components: audio\cut_audio
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\cut_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\cut_audio
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\change_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\change_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\change_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\change_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\change_audio_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\change_audio_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\reverse_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "reverse audio"; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\reverse_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\reverse_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\compress_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress audio"; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\compress_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\change_audio_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\change_audio_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFActions\shell\convert\shell\to_mp3"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mp3"; Flags: uninsdeletekey; Components: audio\convert
@@ -196,15 +344,19 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\FFAction
 ; ========================
 ; .mp3
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\cut_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut audio"; Flags: uninsdeletekey; Components: audio\cut_audio
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\cut_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\cut_audio
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\change_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\change_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\change_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\change_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\change_audio_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\change_audio_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\reverse_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "reverse audio"; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\reverse_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\reverse_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\compress_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress audio"; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\compress_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\change_audio_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\change_audio_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFActions\shell\convert\shell\to_wav"; ValueType: string; ValueName: "MUIVerb"; ValueData: "wav"; Flags: uninsdeletekey; Components: audio\convert
@@ -219,15 +371,19 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\FFAction
 ; ========================
 ; .flac
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\cut_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut audio"; Flags: uninsdeletekey; Components: audio\cut_audio
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\cut_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\cut_audio
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\change_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\change_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\change_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\change_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\change_audio_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\change_audio_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\reverse_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "reverse audio"; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\reverse_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\reverse_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\compress_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress audio"; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\compress_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\change_audio_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\change_audio_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActions\shell\convert\shell\to_mp3"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mp3"; Flags: uninsdeletekey; Components: audio\convert
@@ -242,15 +398,19 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\FFActio
 ; ========================
 ; .m4a
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\cut_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut audio"; Flags: uninsdeletekey; Components: audio\cut_audio
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\cut_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\cut_audio
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\change_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\change_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\change_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\change_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\change_audio_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\change_audio_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\reverse_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "reverse audio"; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\reverse_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\reverse_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\compress_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress audio"; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\compress_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\change_audio_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\change_audio_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFActions\shell\convert\shell\to_mp3"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mp3"; Flags: uninsdeletekey; Components: audio\convert
@@ -265,15 +425,19 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\FFAction
 ; ========================
 ; .ogg
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\cut_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut audio"; Flags: uninsdeletekey; Components: audio\cut_audio
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\cut_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\cut_audio
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\change_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\change_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\change_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\change_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\change_audio_speed"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change speed"; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\change_audio_speed\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_speed.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_speed
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\reverse_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "reverse audio"; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\reverse_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\reverse_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\reverse
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\compress_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "compress audio"; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\compress_audio\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\compress_audio.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\compress
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\change_audio_pitch"; ValueType: string; ValueName: "MUIVerb"; ValueData: "change pitch"; Flags: uninsdeletekey; Components: audio\change_pitch
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\change_audio_pitch\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\change_audio_pitch.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\change_pitch
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\convert"; ValueType: string; ValueName: "MUIVerb"; ValueData: "convert"; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\convert"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\convert\shell\to_mp3"; ValueType: string; ValueName: "MUIVerb"; ValueData: "mp3"; Flags: uninsdeletekey; Components: audio\convert
@@ -285,9 +449,6 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFAction
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\convert\shell\to_m4a"; ValueType: string; ValueName: "MUIVerb"; ValueData: "m4a"; Flags: uninsdeletekey; Components: audio\convert
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\FFActions\shell\convert\shell\to_m4a\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_audio_to_m4a.exe"" ""%1"""; Flags: uninsdeletekey; Components: audio\convert
 
-; ========================
-; images
-; ========================
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.png\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: image\resize_image image\convert image\compress image\flip image\crop image\icon
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.png\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: image\resize_image image\convert image\compress image\flip image\crop image\icon
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.png\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: image\resize_image image\convert image\compress image\flip image\crop image\icon
@@ -404,6 +565,9 @@ begin
   RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.mp4\shell\FFActions');
   RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.mkv\shell\FFActions');
   RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.avi\shell\FFActions');
+  RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.mov\shell\FFActions');
+  RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.webm\shell\FFActions');
+  RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.m4v\shell\FFActions');
   RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.wav\shell\FFActions');
   RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.mp3\shell\FFActions');
   RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.flac\shell\FFActions');

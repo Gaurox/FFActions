@@ -153,7 +153,10 @@ function Get-TargetFormatFromExeName {
         'convert_to_mp4' { return '.mp4' }
         'convert_to_mkv' { return '.mkv' }
         'convert_to_avi' { return '.avi' }
-        default { throw 'Unknown conversion target. Expected convert_to_mp4.exe, convert_to_mkv.exe or convert_to_avi.exe.' }
+        'convert_to_mov' { return '.mov' }
+        'convert_to_webm' { return '.webm' }
+        'convert_to_m4v' { return '.m4v' }
+        default { throw 'Unknown conversion target. Expected convert_to_mp4.exe, convert_to_mkv.exe, convert_to_avi.exe, convert_to_mov.exe, convert_to_webm.exe or convert_to_m4v.exe.' }
     }
 }
 
@@ -226,8 +229,65 @@ function Get-EncodingPlan([string]$TargetExtension, [bool]$NvencAvailable) {
 
             return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
         }
+        '.mov' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libx264'
+                VideoArgs  = @('-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                AudioCodec = 'aac'
+                AudioArgs  = @('-b:a', '320k')
+            }
+
+            if ($NvencAvailable) {
+                $gpu = [PSCustomObject]@{
+                    ModeLabel  = 'NVIDIA GPU'
+                    VideoCodec = 'h264_nvenc'
+                    VideoArgs  = @('-preset', 'p5', '-cq', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                    AudioCodec = 'aac'
+                    AudioArgs  = @('-b:a', '320k')
+                }
+
+                return [PSCustomObject]@{ Primary = $gpu; Fallback = $cpu }
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        '.webm' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libvpx-vp9'
+                VideoArgs  = @('-crf', '31', '-b:v', '0', '-deadline', 'good', '-cpu-used', '2', '-row-mt', '1')
+                AudioCodec = 'libopus'
+                AudioArgs  = @('-b:a', '192k')
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
+        '.m4v' {
+            $cpu = [PSCustomObject]@{
+                ModeLabel  = 'CPU'
+                VideoCodec = 'libx264'
+                VideoArgs  = @('-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                AudioCodec = 'aac'
+                AudioArgs  = @('-b:a', '320k')
+            }
+
+            if ($NvencAvailable) {
+                $gpu = [PSCustomObject]@{
+                    ModeLabel  = 'NVIDIA GPU'
+                    VideoCodec = 'h264_nvenc'
+                    VideoArgs  = @('-preset', 'p5', '-cq', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                    AudioCodec = 'aac'
+                    AudioArgs  = @('-b:a', '320k')
+                }
+
+                return [PSCustomObject]@{ Primary = $gpu; Fallback = $cpu }
+            }
+
+            return [PSCustomObject]@{ Primary = $cpu; Fallback = $null }
+        }
         default {
-            throw 'Unsupported target format. Only .mp4, .mkv and .avi are supported.'
+            throw 'Unsupported target format. Only .mp4, .mkv, .avi, .mov, .webm and .m4v are supported.'
         }
     }
 }
@@ -297,8 +357,8 @@ try {
     }
 
     $sourceExtension = [System.IO.Path]::GetExtension($InputFile).ToLowerInvariant()
-    if ($sourceExtension -notin @('.mp4', '.mkv', '.avi')) {
-        Show-Error 'Unsupported input format. Only .mp4, .mkv and .avi are supported.'
+    if ($sourceExtension -notin @('.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v')) {
+        Show-Error 'Unsupported input format. Only .mp4, .mkv, .avi, .mov, .webm and .m4v are supported.'
         exit 1
     }
 

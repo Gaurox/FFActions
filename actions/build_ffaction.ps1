@@ -14,8 +14,6 @@ if ($template.IndexOf($marker, [System.StringComparison]::Ordinal) -lt 0) {
 
 $result = $template.Replace($marker, $shared)
 $targetPath = [System.IO.Path]::GetFullPath($OutputFile)
-$targetDir = [System.IO.Path]::GetDirectoryName($targetPath)
-$tempPath = Join-Path $targetDir ([System.IO.Path]::GetRandomFileName())
 $encoding = New-Object System.Text.UTF8Encoding($false)
 
 if (Test-Path -LiteralPath $targetPath) {
@@ -26,14 +24,10 @@ if (Test-Path -LiteralPath $targetPath) {
     }
 }
 
-[System.IO.File]::WriteAllText($tempPath, $result, $encoding)
-
 $maxAttempts = 5
 for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
     try {
-        Copy-Item -LiteralPath $tempPath -Destination $targetPath -Force
-        Remove-Item -LiteralPath $tempPath -Force
-        $tempPath = $null
+        [System.IO.File]::WriteAllText($targetPath, $result, $encoding)
         break
     }
     catch {
@@ -43,10 +37,6 @@ for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
 
         Start-Sleep -Milliseconds 200
     }
-}
-
-if ($tempPath -and (Test-Path -LiteralPath $tempPath)) {
-    Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host "Build OK -> $OutputFile"

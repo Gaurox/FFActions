@@ -260,18 +260,7 @@ function Invoke-FFmpegWithProgress {
     $process = New-Object System.Diagnostics.Process
     $process.StartInfo = $psi
 
-    $errorBuilder = New-Object System.Text.StringBuilder
-    $errorHandler = [System.Diagnostics.DataReceivedEventHandler]{
-        param($sender, $e)
-        if (-not [string]::IsNullOrWhiteSpace($e.Data)) {
-            [void]$errorBuilder.AppendLine($e.Data)
-        }
-    }
-
-    $process.add_ErrorDataReceived($errorHandler)
-
     [void]$process.Start()
-    $process.BeginErrorReadLine()
 
     $lastPercent = 0
     $exitCode = -1
@@ -354,6 +343,7 @@ function Invoke-FFmpegWithProgress {
 
         $process.WaitForExit()
         $exitCode = $process.ExitCode
+        $stdErr = $process.StandardError.ReadToEnd()
         [System.Windows.Forms.Application]::DoEvents()
 
         if ($isCancelled -and $OutputFile -and (Test-Path -LiteralPath $OutputFile)) {
@@ -362,13 +352,11 @@ function Invoke-FFmpegWithProgress {
 
         return [PSCustomObject]@{
             ExitCode  = $exitCode
-            StdErr    = $errorBuilder.ToString()
+            StdErr    = $stdErr
             Cancelled = $isCancelled
         }
     }
     finally {
-        try { $process.CancelErrorRead() } catch {}
-        try { $process.remove_ErrorDataReceived($errorHandler) } catch {}
         $process.Dispose()
 
         if ($ownsForm -and $ProgressForm) {
