@@ -20,6 +20,8 @@ FFActions integrates into the Windows context menu for supported video, audio, a
 
 Each command launches a standalone tool based on PowerShell and FFmpeg. Every operation creates a new file next to the source file and does not overwrite the original.
 
+For format-based actions such as convert and audio extraction, FFActions now uses small picker windows instead of large nested format submenus. This keeps the context menu shorter and more reliable in Explorer.
+
 The installer offers these modules:
 
 - Video
@@ -293,7 +295,7 @@ For full local builds, the project expects:
 Example to rebuild all local executables:
 
 ```powershell
-.\build_all.ps1 -Version 1.1.0
+.\build_all.ps1 -Version 1.2.0
 ```
 
 Example to build the installer after that:
