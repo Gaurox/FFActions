@@ -4,134 +4,168 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FFActions - Right-click media tools for Windows</title>
-  <meta
-    name="description"
-    content="FFActions adds fast right-click tools to process video, audio and image files on Windows."
-  />
+  <meta name="description" content="FFActions adds fast right-click tools to process video, audio and image files locally on Windows." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="hero">
     <nav class="nav">
-      <div class="logo">FFActions</div>
+      <a class="logo" href="#top">FFActions</a>
       <div class="nav-links">
         <a href="#features">Features</a>
+        <a href="#screenshots">Screenshots</a>
         <a href="#download">Download</a>
         <a href="https://github.com/Gaurox/FFActions" target="_blank" rel="noreferrer">GitHub</a>
       </div>
     </nav>
 
-    <div class="hero-content">
-      <h1>Fast right-click media tools for Windows</h1>
-      <p>
-        FFActions adds simple context-menu actions to process video, audio and image files
-        without opening heavy software.
-      </p>
-
-      <div class="hero-buttons">
-        <a
-          class="button primary"
-          href="https://github.com/Gaurox/FFActions/releases"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Download
-        </a>
-        <a
-          class="button secondary"
-          href="https://github.com/Gaurox/FFActions"
-          target="_blank"
-          rel="noreferrer"
-        >
-          View Source
-        </a>
+    <div id="top" class="hero-content">
+      <div class="hero-text">
+        <p class="eyebrow">Windows context-menu media tools</p>
+        <h1>Fast FFmpeg actions from right-click.</h1>
+        <p class="lead">
+          Process videos, audio files and images without opening heavy software.
+          FFActions adds focused tools directly to the Windows context menu.
+        </p>
+        <div class="hero-buttons">
+          <a class="button primary" href="https://github.com/Gaurox/FFActions/releases" target="_blank" rel="noreferrer">Download latest release</a>
+          <a class="button secondary" href="https://github.com/Gaurox/FFActions" target="_blank" rel="noreferrer">View source</a>
+        </div>
       </div>
+
     </div>
   </header>
 
   <main>
     <section class="section center">
-      <h2>Right-click. Choose an action. Done.</h2>
+      <h2>Right-click. Choose an action. Get a new file.</h2>
       <p class="section-text">
-        FFActions integrates directly into the Windows context menu.
-        Each operation creates a new file next to the original one and never overwrites your source file.
+        Each operation creates an output next to the original file and keeps the source untouched.
+        Simple dialogs, clear options, local processing.
       </p>
-
       <div class="flow">
         <div>Right-click file</div>
-        <span>&rarr;</span>
+        <span>→</span>
         <div>Choose FFActions</div>
-        <span>&rarr;</span>
-        <div>Get output file</div>
+        <span>→</span>
+        <div>Output created</div>
+      </div>
+    </section>
+
+    <section class="section menus single-menu">
+      <div class="menu-shot">
+        <img src="screenshots/MenuVideo.png" alt="FFActions video context menu" />
+        <h3>Video context menu</h3>
       </div>
     </section>
 
     <section id="features" class="section">
-      <h2>Features</h2>
+      <div class="section-heading">
+        <p class="eyebrow">Features</p>
+        <h2>Built for common media tasks.</h2>
+      </div>
 
-      <div class="cards">
-        <div class="card">
+      <div class="feature-grid">
+        <article class="feature-card">
           <h3>Video</h3>
-          <p>Cut by frame, cut by time, interpolate, remove audio, extract audio, rotate, flip, compress and convert.</p>
-        </div>
+          <p>Cut video, crop video, create GIF, resize video, rotate / flip, interpolate, compress, convert, extract audio and remove audio.</p>
+          <p class="formats">mp4 · mkv · avi · mov · webm · m4v</p>
+        </article>
 
-        <div class="card">
+        <article class="feature-card">
           <h3>Audio</h3>
-          <p>Trim, convert, change speed, change pitch, reverse and compress audio files.</p>
-        </div>
+          <p>Cut audio with waveform preview, convert, change speed, change pitch, reverse and compress audio files.</p>
+          <p class="formats">mp3 · wav · flac · m4a · ogg</p>
+        </article>
 
-        <div class="card">
+        <article class="feature-card">
           <h3>Image</h3>
-          <p>Resize, crop, convert, compress, rotate, flip and generate icon files from images.</p>
-        </div>
+          <p>Resize, crop, convert, compress, rotate / flip and convert images to icon files.</p>
+          <p class="formats">png · jpg · jpeg · webp · bmp · ico output</p>
+        </article>
       </div>
     </section>
 
     <section class="section dark">
-      <h2>Built for quick everyday tasks</h2>
+      <h2>No cloud. No account. No complex workspace.</h2>
       <p>
-        FFActions is not a full video editor, audio workstation or image editor.
-        It is designed for fast operations with short dialogs, focused options and simple output handling.
+        FFActions runs locally on Windows and uses FFmpeg / FFprobe under the hood.
+        It is open source and focused on quick everyday operations.
       </p>
+      <div class="trust-list">
+        <span>Local processing</span>
+        <span>No source overwrite</span>
+        <span>Open source</span>
+        <span>FFmpeg powered</span>
+      </div>
     </section>
 
-    <section class="section">
-      <h2>No cloud. No account. Local processing.</h2>
+    <section id="screenshots" class="section">
+      <div class="section-heading">
+        <p class="eyebrow">Screenshots</p>
+        <h2>Small dialogs for focused actions.</h2>
+      </div>
 
-      <div class="list">
-        <div>No online upload</div>
-        <div>No account required</div>
-        <div>No complex interface</div>
-        <div>Powered by FFmpeg and FFprobe</div>
-        <div>Open source under MIT license</div>
+      <div class="screenshot-grid">
+        <article class="screenshot-card large">
+          <img src="screenshots/CutVideo.jpg" alt="Cut video tool" />
+          <div><h3>Cut video</h3><p>Live preview, dual-handle timeline, frame and time inputs.</p></div>
+        </article>
+
+        <article class="screenshot-card large">
+          <img src="screenshots/CropVideo.jpg" alt="Crop video tool" />
+          <div><h3>Crop video</h3><p>Preview frame, ratio presets, center and reset controls.</p></div>
+        </article>
+
+        <article class="screenshot-card">
+          <img src="screenshots/CutAudio.jpg" alt="Cut audio waveform tool" />
+          <div><h3>Cut audio</h3><p>Waveform preview, selection playback, remove or silence selection.</p></div>
+        </article>
+
+        <article class="screenshot-card">
+          <img src="screenshots/ResizeImage.jpg" alt="Resize image tool" />
+          <div><h3>Resize image</h3><p>Pixel and percentage resize with automatic ratio handling.</p></div>
+        </article>
+
+        <article class="screenshot-card">
+          <img src="screenshots/CreateGif.jpg" alt="Create GIF tool" />
+          <div><h3>Create GIF</h3><p>Resolution, FPS and quality presets.</p></div>
+        </article>
+
+        <article class="screenshot-card">
+          <img src="screenshots/ChangeAudioPitch.jpg" alt="Change audio pitch tool" />
+          <div><h3>Change pitch</h3><p>Semitone and percentage controls with optional duration preservation.</p></div>
+        </article>
+
+        <article class="screenshot-card">
+          <img src="screenshots/RotateFlipImage.jpg" alt="Rotate and flip image tool" />
+          <div><h3>Rotate / flip image</h3><p>Visual preview with direct transform buttons.</p></div>
+        </article>
+
+        <article class="screenshot-card">
+          <img src="screenshots/ConvertVideo.jpg" alt="Convert video format picker" />
+          <div><h3>Format pickers</h3><p>Compact direct-click dialogs for conversion actions.</p></div>
+        </article>
       </div>
     </section>
 
     <section id="download" class="section download">
-      <h2>Download FFActions</h2>
-      <p>Get the latest Windows installer from GitHub Releases.</p>
-
-      <a
-        class="button primary big"
-        href="https://github.com/Gaurox/FFActions/releases"
-        target="_blank"
-        rel="noreferrer"
-      >
-        Download Latest Release
-      </a>
-
-      <p class="small">
-        You can also inspect the source code and build the project manually from GitHub.
-      </p>
+      <p class="eyebrow">Download</p>
+      <h2>Install FFActions for Windows.</h2>
+      <p>Get the latest installer from GitHub Releases, or inspect and build the source manually.</p>
+      <div class="hero-buttons">
+        <a class="button primary big" href="https://github.com/Gaurox/FFActions/releases" target="_blank" rel="noreferrer">Download latest release</a>
+        <a class="button secondary big" href="https://github.com/Gaurox/FFActions" target="_blank" rel="noreferrer">Open GitHub repo</a>
+      </div>
     </section>
   </main>
 
   <footer class="footer">
-    <p>FFActions &mdash; Windows right-click media tools</p>
+    <p>FFActions — Windows right-click media tools</p>
     <p>
       <a href="https://github.com/Gaurox/FFActions" target="_blank" rel="noreferrer">GitHub</a>
-      &middot;
-      <a href="https://ffmpeg.org/legal.html" target="_blank" rel="noreferrer">FFmpeg License Information</a>
+      <span>·</span>
+      <a href="https://ffmpeg.org/legal.html" target="_blank" rel="noreferrer">FFmpeg license information</a>
     </p>
   </footer>
 </body>

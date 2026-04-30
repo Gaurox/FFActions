@@ -1,6 +1,6 @@
 [Setup]
 AppName=FFActions
-AppVersion=1.2.0
+AppVersion=1.2.1
 DefaultDirName={autopf}\FFActions
 DefaultGroupName=FFActions
 OutputDir=.
@@ -29,8 +29,7 @@ Name: "custom"; Description: "Installation personnalisee"; Flags: iscustom
 
 [Components]
 Name: "video"; Description: "Video"; Types: complete custom
-Name: "video\cut_by_frame"; Description: "Cut by frame"; Types: complete custom
-Name: "video\cut_by_time"; Description: "Cut by time"; Types: complete custom
+Name: "video\cut_video"; Description: "Cut video"; Types: complete custom
 Name: "video\interpolate"; Description: "Interpolate"; Types: complete custom
 Name: "video\remove_audio"; Description: "Remove audio"; Types: complete custom
 Name: "video\extract_audio"; Description: "Extract audio"; Types: complete custom
@@ -56,8 +55,7 @@ Name: "image\crop"; Description: "Crop"; Types: complete custom
 Name: "image\icon"; Description: "Convert to icon"; Types: complete custom
 
 [Files]
-Source: "actions\cut_by_frame.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\cut_by_frame
-Source: "actions\cut_by_time.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\cut_by_time
+Source: "actions\cut_video.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\cut_video
 Source: "actions\interpolate.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\interpolate
 Source: "actions\convert_to_mp4.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
 Source: "actions\convert_to_mkv.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
@@ -105,14 +103,15 @@ Source: "actions\flip_image.exe"; DestDir: "{app}\actions"; Flags: ignoreversion
 Source: "actions\crop_image.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: image\crop
 Source: "actions\convert_icon.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: image\icon
 
-Source: "tools\ffmpeg\ffmpeg.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\convert image\compress image\flip image\crop image\icon
-Source: "tools\ffmpeg\ffprobe.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
-Source: "tools\icons\ffactions.ico"; DestDir: "{app}\tools\icons"; DestName: "ffactions.ico"; Flags: ignoreversion; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\resize_image image\convert image\compress image\flip image\crop image\icon
+Source: "tools\ffmpeg\ffmpeg.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\convert image\compress image\flip image\crop image\icon
+Source: "tools\ffmpeg\ffprobe.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
+Source: "tools\icons\ffactions.ico"; DestDir: "{app}\tools\icons"; DestName: "ffactions.ico"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\resize_image image\convert image\compress image\flip image\crop image\icon
 Source: "tools\repair_video_menus.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: video
 Source: "tools\repair_audio_image_convert_menus.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: audio\convert image\convert
 
 [InstallDelete]
 Type: files; Name: "{app}\actions\cut_by_frame.exe"
+Type: files; Name: "{app}\actions\cut_video.exe"
 Type: files; Name: "{app}\actions\cut_by_time.exe"
 Type: files; Name: "{app}\actions\interpolate.exe"
 Type: files; Name: "{app}\actions\convert_to_mp4.exe"
@@ -173,13 +172,11 @@ Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-Execution
 ; ========================
 ; .mp4
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\cut_by_time\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_time.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\cut_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut video"; Flags: uninsdeletekey; Components: video\cut_video
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\cut_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_video
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\interpolate"; ValueType: string; ValueName: "MUIVerb"; ValueData: "interpolate"; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
@@ -229,13 +226,11 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\FFAction
 ; ========================
 ; .mkv
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\cut_by_time\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_time.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\cut_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut video"; Flags: uninsdeletekey; Components: video\cut_video
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\cut_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_video
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\interpolate"; ValueType: string; ValueName: "MUIVerb"; ValueData: "interpolate"; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
@@ -285,13 +280,11 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\FFAction
 ; ========================
 ; .avi
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\cut_by_time\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_time.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\cut_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut video"; Flags: uninsdeletekey; Components: video\cut_video
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\cut_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_video
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\interpolate"; ValueType: string; ValueName: "MUIVerb"; ValueData: "interpolate"; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
@@ -341,13 +334,11 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\FFAction
 ; ========================
 ; .mov
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_by_time\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_time.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut video"; Flags: uninsdeletekey; Components: video\cut_video
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\cut_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_video
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\interpolate"; ValueType: string; ValueName: "MUIVerb"; ValueData: "interpolate"; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
@@ -397,13 +388,11 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\FFAction
 ; ========================
 ; .webm
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_by_time\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_time.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut video"; Flags: uninsdeletekey; Components: video\cut_video
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\cut_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_video
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\interpolate"; ValueType: string; ValueName: "MUIVerb"; ValueData: "interpolate"; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
@@ -453,13 +442,11 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\FFActio
 ; ========================
 ; .m4v
 ; ========================
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_by_frame video\cut_by_time video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_by_frame"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by frame"; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_by_frame\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_frame.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_frame
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_by_time"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut by time"; Flags: uninsdeletekey; Components: video\cut_by_time
-Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_by_time\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_by_time.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_by_time
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions"; ValueType: string; ValueName: "MUIVerb"; ValueData: "ffmpg"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tools\icons\ffactions.ico"; Flags: uninsdeletekey; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_video"; ValueType: string; ValueName: "MUIVerb"; ValueData: "cut video"; Flags: uninsdeletekey; Components: video\cut_video
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\cut_video\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\cut_video.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\cut_video
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\interpolate"; ValueType: string; ValueName: "MUIVerb"; ValueData: "interpolate"; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\interpolate\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\interpolate.exe"" ""%1"""; Flags: uninsdeletekey; Components: video\interpolate
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\FFActions\shell\remove_audio"; ValueType: string; ValueName: "MUIVerb"; ValueData: "remove audio"; Flags: uninsdeletekey; Components: video\remove_audio
@@ -792,6 +779,47 @@ begin
   RegDeleteKeyIncludingSubkeys(HKLM, 'Software\Classes\SystemFileAssociations\.webp\shell\FFActions');
 end;
 
+procedure ConfigurePickerMenu(const Ext, MenuKey, LabelText, ExeName: string);
+var
+  KeyPath: string;
+  CommandValue: string;
+begin
+  KeyPath := 'Software\Classes\SystemFileAssociations\' + Ext + '\shell\FFActions\shell\' + MenuKey;
+  RegDeleteKeyIncludingSubkeys(HKCU, KeyPath);
+  RegWriteStringValue(HKCU, KeyPath, 'MUIVerb', LabelText);
+  CommandValue := '"' + ExpandConstant('{app}\actions\' + ExeName) + '" "%1"';
+  RegWriteStringValue(HKCU, KeyPath + '\command', '', CommandValue);
+end;
+
+procedure ApplyPickerMenus;
+begin
+  ConfigurePickerMenu('.mp4',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+  ConfigurePickerMenu('.mkv',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+  ConfigurePickerMenu('.avi',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+  ConfigurePickerMenu('.mov',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+  ConfigurePickerMenu('.webm', 'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+  ConfigurePickerMenu('.m4v',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+
+  ConfigurePickerMenu('.mp4',  'convert', 'convert', 'convert_video_picker.exe');
+  ConfigurePickerMenu('.mkv',  'convert', 'convert', 'convert_video_picker.exe');
+  ConfigurePickerMenu('.avi',  'convert', 'convert', 'convert_video_picker.exe');
+  ConfigurePickerMenu('.mov',  'convert', 'convert', 'convert_video_picker.exe');
+  ConfigurePickerMenu('.webm', 'convert', 'convert', 'convert_video_picker.exe');
+  ConfigurePickerMenu('.m4v',  'convert', 'convert', 'convert_video_picker.exe');
+
+  ConfigurePickerMenu('.wav',  'convert', 'convert', 'convert_audio_picker.exe');
+  ConfigurePickerMenu('.mp3',  'convert', 'convert', 'convert_audio_picker.exe');
+  ConfigurePickerMenu('.flac', 'convert', 'convert', 'convert_audio_picker.exe');
+  ConfigurePickerMenu('.m4a',  'convert', 'convert', 'convert_audio_picker.exe');
+  ConfigurePickerMenu('.ogg',  'convert', 'convert', 'convert_audio_picker.exe');
+
+  ConfigurePickerMenu('.png',  'convert', 'convert', 'convert_image_picker.exe');
+  ConfigurePickerMenu('.jpg',  'convert', 'convert', 'convert_image_picker.exe');
+  ConfigurePickerMenu('.jpeg', 'convert', 'convert', 'convert_image_picker.exe');
+  ConfigurePickerMenu('.bmp',  'convert', 'convert', 'convert_image_picker.exe');
+  ConfigurePickerMenu('.webp', 'convert', 'convert', 'convert_image_picker.exe');
+end;
+
 function InitializeSetup(): Boolean;
 begin
   Result := True;
@@ -802,5 +830,10 @@ begin
   if CurStep = ssInstall then
   begin
     CleanupContextMenuKeys;
+  end;
+
+  if CurStep = ssPostInstall then
+  begin
+    ApplyPickerMenus;
   end;
 end;

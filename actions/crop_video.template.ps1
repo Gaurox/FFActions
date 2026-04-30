@@ -534,7 +534,7 @@ function Show-CropWindow {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(940, 690)
+    $form.ClientSize = New-Object System.Drawing.Size(940, 724)
     $form.TopMost = $true
 
     $panel = New-Object System.Windows.Forms.Panel
@@ -555,7 +555,7 @@ function Show-CropWindow {
     $form.Controls.Add($trackPreview)
 
     $labelTimelineHint = New-Object System.Windows.Forms.Label
-    $labelTimelineHint.Location = New-Object System.Drawing.Point(12, 564)
+    $labelTimelineHint.Location = New-Object System.Drawing.Point(12, 592)
     $labelTimelineHint.Size = New-Object System.Drawing.Size(780, 20)
     $labelTimelineHint.Text = 'Drag the slider to preview another moment of the video.'
     $form.Controls.Add($labelTimelineHint)
@@ -609,14 +609,14 @@ function Show-CropWindow {
 
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(734, 650)
+    $buttonOK.Location = New-Object System.Drawing.Point(734, 684)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(836, 650)
+    $buttonCancel.Location = New-Object System.Drawing.Point(836, 684)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)

@@ -1,6 +1,6 @@
 # FFActions
 
-Version: `1.2.0`
+Version: `1.2.1`
 
 ---
 
@@ -20,7 +20,13 @@ FFActions integrates into the Windows context menu for supported video, audio, a
 
 Each command launches a standalone tool based on PowerShell and FFmpeg. Every operation creates a new file next to the source file and does not overwrite the original.
 
-For format-based actions such as convert and audio extraction, FFActions now uses small picker windows instead of large nested format submenus. This keeps the context menu shorter and more reliable in Explorer.
+For format-based actions such as convert and audio extraction, FFActions now uses small picker windows instead of large nested format submenus. The installer rewires these entries directly to the picker executables so Explorer opens the compact button dialog immediately.
+
+Menu overview:
+
+![Video Menu](screenshots/MenuVideo.png)
+![Audio Menu](screenshots/MenuAudio.png)
+![Image Menu](screenshots/MenuImage.png)
 
 The installer offers these modules:
 
@@ -28,27 +34,33 @@ The installer offers these modules:
 - Audio
 - Image
 
+## Recent 1.2.1 improvements
+
+- `Cut video` now uses a live preview, a dual-handle timeline, and synchronized frame and time inputs.
+- `Rotate / flip image` now uses a visual preview with direct transform buttons and reset.
+- `Rotate / flip video` now follows the same visual workflow, with frame preview and slider.
+- `Convert video`, `convert audio`, `convert image`, and `extract audio` now use compact centered format pickers with direct-click buttons, wired directly from the installed context menu.
+- `Compress audio`, `compress image`, `crop video`, and the small picker dialogs received layout fixes for cut text and tighter spacing.
+
 ---
 
 # VIDEO FEATURES
 
-## Cut by Frame
+## Cut Video
 
-Precise cutting based on exact frame numbers.
-
-Formats: `mp4 mkv avi mov webm m4v`
-
-## Cut by Time
-
-Cut a video using start and end times.
+Visual cutting tool with a live video preview, a double-handle timeline, and synchronized frame and time fields for precise start and end selection.
 
 Formats: `mp4 mkv avi mov webm m4v`
+
+![Cut Video](screenshots/CutVideo.jpg)
 
 ## Interpolate
 
 Increase motion smoothness by generating intermediate frames.
 
 Formats: `mp4 mkv avi mov webm m4v`
+
+![Interpolate](screenshots/Interpolate.jpg)
 
 ## Remove Audio
 
@@ -60,17 +72,21 @@ Formats: `mp4 mkv avi mov webm m4v`
 
 Extract the audio track from a video.
 
-The action opens a small format picker, then launches the extraction.
+The action opens a small centered format picker with direct click buttons, then launches the extraction.
 
 Input formats: `mp4 mkv avi mov webm m4v`
 
 Output formats: `mp3 wav flac m4a ogg`
+
+![Extract Audio](screenshots/ExtractAudio.jpg)
 
 ## Create GIF
 
 Create a GIF from a video with simple presets for resolution, FPS and quality.
 
 Formats: `mp4 mkv avi mov webm m4v`
+
+![Create GIF](screenshots/CreateGif.jpg)
 
 ## Resize Video
 
@@ -80,6 +96,8 @@ Options: width/height in px, width/height in %, keep ratio, presets `x0.5 x0.75 
 
 Formats: `mp4 mkv avi mov webm m4v`
 
+![Resize Video](screenshots/ResizeVideo.jpg)
+
 ## Crop Video
 
 Visual crop tool with frame preview and a timeline slider to inspect another moment of the video before applying one fixed crop to the full file.
@@ -88,13 +106,17 @@ Options: free, square, `16:9`, `9:16`, `4:3`, timeline preview, center, reset
 
 Formats: `mp4 mkv avi mov webm m4v`
 
+![Crop Video](screenshots/CropVideo.jpg)
+
 ## Rotate / Flip Video
 
-Rotate or mirror a video while keeping the same container format.
+Visual rotate and mirror tool with live frame preview, frame slider, reset button, and direct transform buttons.
 
-Options: `90 180 270 horizontal vertical`
+Options: rotation left, rotation right, mirror horizontal, mirror vertical
 
 Formats: `mp4 mkv avi mov webm m4v`
+
+![Rotate Flip Video](screenshots/RotateFlipVideo.jpg)
 
 ## Compress Video
 
@@ -104,13 +126,17 @@ Options: `High quality Balanced Small file`, optional target size
 
 Formats: `mp4 mkv avi mov webm m4v`
 
+![Compress Video](screenshots/CompressVideo.jpg)
+
 ## Convert Video
 
 Convert a video from one format to another.
 
-The action opens a small format picker, then launches the conversion.
+The action opens a small centered format picker with direct click buttons, then launches the conversion.
 
 Input/output formats: `mp4 mkv avi mov webm m4v`
+
+![Convert Video](screenshots/ConvertVideo.jpg)
 
 ---
 
@@ -122,13 +148,17 @@ Quickly trim an audio file.
 
 Formats: `mp3 wav flac m4a ogg`
 
+![Cut Audio](screenshots/CutAudio.jpg)
+
 ## Convert Audio
 
 Convert an audio file from one format to another.
 
-The action opens a small format picker, then launches the conversion.
+The action opens a small centered format picker with direct click buttons, then launches the conversion.
 
 Input/output formats: `mp3 wav flac m4a ogg`
+
+![Convert Audio](screenshots/ConvertAudio.jpg)
 
 ## Change Speed
 
@@ -138,6 +168,8 @@ Options: percentage, target duration, pitch preservation
 
 Formats: `mp3 wav flac m4a ogg`
 
+![Change Speed](screenshots/ChangeAudioSpeed.jpg)
+
 ## Change Pitch
 
 Adjust audio pitch.
@@ -145,6 +177,8 @@ Adjust audio pitch.
 Options: semitones, percentage, duration preservation
 
 Formats: `mp3 wav flac m4a ogg`
+
+![Change Pitch](screenshots/ChangeAudioPitch.jpg)
 
 ## Reverse Audio
 
@@ -160,6 +194,8 @@ Options: `High quality Balanced Small file`, optional target size
 
 Formats: `mp3 wav flac m4a ogg`
 
+![Compress Audio](screenshots/CompressAudio.jpg)
+
 ---
 
 # IMAGE FEATURES
@@ -172,15 +208,19 @@ Options: width/height in px, width/height in %, keep ratio, presets `x0.5 x0.75 
 
 Formats: `png jpg jpeg webp bmp`
 
+![Resize Image](screenshots/ResizeImage.jpg)
+
 ## Convert Image
 
 Convert an image from one format to another.
 
-The action opens a small format picker, then launches the conversion.
+The action opens a small centered format picker with direct click buttons, then launches the conversion.
 
 Input formats: `png jpg jpeg webp bmp`
 
 Output formats: `png jpg webp bmp`
+
+![Convert Image](screenshots/ConvertImage.jpg)
 
 ## Compress Image
 
@@ -190,13 +230,17 @@ Options: `High quality Balanced Small file`, optional target size, output `png j
 
 Formats: `png jpg jpeg webp bmp`
 
+![Compress Image](screenshots/CompressImage.jpg)
+
 ## Rotate / Flip Image
 
-Rotate or mirror an image.
+Visual rotate and mirror tool with live preview, reset button, and direct transform buttons.
 
-Options: `90 180 270 horizontal vertical`
+Options: rotation left, rotation right, mirror horizontal, mirror vertical
 
 Formats: `png jpg jpeg webp bmp`
+
+![Rotate Flip Image](screenshots/RotateFlipImage.jpg)
 
 ## Crop Image
 
@@ -205,6 +249,8 @@ Visual crop tool with live preview.
 Options: free, square, `16:9`, `9:16`, `4:3`, center, reset
 
 Formats: `png jpg jpeg webp bmp`
+
+![Crop Image](screenshots/CropImage.jpg)
 
 ## Convert to Icon
 
@@ -215,6 +261,8 @@ Options: sizes `16 24 32 48 64 128 256`, modes `Fit Fill`, background `transpare
 Input formats: `png jpg jpeg webp bmp`
 
 Output formats: `ico`
+
+![Convert To Icon](screenshots/ConvertToIcon.jpg)
 
 ---
 
@@ -295,7 +343,7 @@ For full local builds, the project expects:
 Example to rebuild all local executables:
 
 ```powershell
-.\build_all.ps1 -Version 1.2.0
+.\build_all.ps1 -Version 1.2.1
 ```
 
 Example to build the installer after that:

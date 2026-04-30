@@ -317,7 +317,7 @@ function Show-CompressWindow {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(500, 320)
+    $form.ClientSize = New-Object System.Drawing.Size(500, 340)
     $form.TopMost = $true
 
     $labelInfo = New-Object System.Windows.Forms.Label
@@ -380,7 +380,7 @@ function Show-CompressWindow {
     $groupTarget = New-Object System.Windows.Forms.GroupBox
     $groupTarget.Text = 'Optional target size'
     $groupTarget.Location = New-Object System.Drawing.Point(18, 216)
-    $groupTarget.Size = New-Object System.Drawing.Size(464, 62)
+    $groupTarget.Size = New-Object System.Drawing.Size(464, 82)
     $form.Controls.Add($groupTarget)
 
     $checkTarget = New-Object System.Windows.Forms.CheckBox
@@ -406,20 +406,20 @@ function Show-CompressWindow {
     $groupTarget.Controls.Add($comboUnit)
 
     $labelTargetHint = New-Object System.Windows.Forms.Label
-    $labelTargetHint.Location = New-Object System.Drawing.Point(315, 27)
-    $labelTargetHint.Size = New-Object System.Drawing.Size(130, 18)
+    $labelTargetHint.Location = New-Object System.Drawing.Point(315, 17)
+    $labelTargetHint.Size = New-Object System.Drawing.Size(130, 40)
     $groupTarget.Controls.Add($labelTargetHint)
 
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(286, 286)
+    $buttonOK.Location = New-Object System.Drawing.Point(286, 304)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(388, 286)
+    $buttonCancel.Location = New-Object System.Drawing.Point(388, 304)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)
@@ -435,7 +435,7 @@ function Show-CompressWindow {
             $checkTarget.Checked = $false
             $textTarget.Enabled = $false
             $comboUnit.Enabled = $false
-            $labelTargetHint.Text = 'Target size only for JPG/WEBP'
+            $labelTargetHint.Text = 'Target size only for' + "`r`n" + 'JPG/WEBP'
         }
         else {
             $textTarget.Enabled = $checkTarget.Checked

@@ -1,5 +1,5 @@
 param(
-    [string]$Version = '1.2.0',
+    [string]$Version = '1.2.1',
     [string]$Company = 'FFActions contributors',
     [string]$Product = 'FFActions'
 )
@@ -65,16 +65,10 @@ function Build-Action {
 }
 
 Build-Action `
-    -TemplateFile (Join-Path $base 'cut_by_frame.template.ps1') `
-    -OutputPs1    (Join-Path $base 'cut_by_frame.ps1') `
-    -OutputExe    (Join-Path $base 'cut_by_frame.exe') `
-    -Title        'FFActions - Cut by Frame'
-
-Build-Action `
-    -TemplateFile (Join-Path $base 'cut_by_time.template.ps1') `
-    -OutputPs1    (Join-Path $base 'cut_by_time.ps1') `
-    -OutputExe    (Join-Path $base 'cut_by_time.exe') `
-    -Title        'FFActions - Cut by Time'
+    -TemplateFile (Join-Path $base 'cut_video.template.ps1') `
+    -OutputPs1    (Join-Path $base 'cut_video.ps1') `
+    -OutputExe    (Join-Path $base 'cut_video.exe') `
+    -Title        'FFActions - Cut Video'
 
 Build-Action `
     -TemplateFile (Join-Path $base 'interpolate.template.ps1') `

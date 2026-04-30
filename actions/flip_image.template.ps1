@@ -122,32 +122,127 @@ function Get-ShortErrorText {
 }
 
 function Get-TransformConfig {
-    param([string]$Key)
+    param([string[]]$Keys)
 
-    switch ($Key) {
-        'rotate90' {
-            return [PSCustomObject]@{ Filter = 'transpose=1'; Label = 'rotate90' }
+    if ($null -eq $Keys -or $Keys.Count -eq 0) {
+        throw 'No image transform selected.'
+    }
+
+    $filters = New-Object System.Collections.Generic.List[string]
+    foreach ($key in $Keys) {
+        switch ($key) {
+            'rotate90'  { $filters.Add('transpose=1') | Out-Null }
+            'rotate270' { $filters.Add('transpose=2') | Out-Null }
+            'flip_h'    { $filters.Add('hflip') | Out-Null }
+            'flip_v'    { $filters.Add('vflip') | Out-Null }
+            default     { throw 'Unknown image transform.' }
         }
-        'rotate180' {
-            return [PSCustomObject]@{ Filter = 'transpose=1,transpose=1'; Label = 'rotate180' }
-        }
-        'rotate270' {
-            return [PSCustomObject]@{ Filter = 'transpose=2'; Label = 'rotate270' }
-        }
-        'flip_h' {
-            return [PSCustomObject]@{ Filter = 'hflip'; Label = 'flipH' }
-        }
-        'flip_v' {
-            return [PSCustomObject]@{ Filter = 'vflip'; Label = 'flipV' }
-        }
-        default {
-            throw 'Unknown image transform.'
-        }
+    }
+
+    return [PSCustomObject]@{
+        Filter = ($filters -join ',')
+        Label  = ($Keys -join '_')
     }
 }
 
+function Get-RotateFlipType {
+    param(
+        [Parameter(Mandatory = $true)][int]$QuarterTurns,
+        [Parameter(Mandatory = $true)][bool]$FlipHorizontal,
+        [Parameter(Mandatory = $true)][bool]$FlipVertical
+    )
+
+    $turn = (($QuarterTurns % 4) + 4) % 4
+    $suffix = if ($FlipHorizontal -and $FlipVertical) {
+        'XY'
+    }
+    elseif ($FlipHorizontal) {
+        'X'
+    }
+    elseif ($FlipVertical) {
+        'Y'
+    }
+    else {
+        'None'
+    }
+
+    $name = switch ($turn) {
+        1 { "Rotate90Flip${suffix}" }
+        2 { "Rotate180Flip${suffix}" }
+        3 { "Rotate270Flip${suffix}" }
+        default { "RotateNoneFlip${suffix}" }
+    }
+
+    return [System.Drawing.RotateFlipType]::$name
+}
+
+function Get-TransformSummary {
+    param(
+        [Parameter(Mandatory = $true)][int]$QuarterTurns,
+        [Parameter(Mandatory = $true)][bool]$FlipHorizontal,
+        [Parameter(Mandatory = $true)][bool]$FlipVertical
+    )
+
+    $rotation = ((($QuarterTurns % 4) + 4) % 4) * 90
+    $parts = @("Rotation: ${rotation}°")
+    $parts += if ($FlipHorizontal) { 'Mirror H: on' } else { 'Mirror H: off' }
+    $parts += if ($FlipVertical) { 'Mirror V: on' } else { 'Mirror V: off' }
+    return ($parts -join '   ')
+}
+
+function New-PreviewBitmap {
+    param(
+        [Parameter(Mandatory = $true)][System.Drawing.Bitmap]$SourceBitmap,
+        [Parameter(Mandatory = $true)][int]$QuarterTurns,
+        [Parameter(Mandatory = $true)][bool]$FlipHorizontal,
+        [Parameter(Mandatory = $true)][bool]$FlipVertical
+    )
+
+    $preview = New-Object System.Drawing.Bitmap($SourceBitmap)
+    $preview.RotateFlip((Get-RotateFlipType -QuarterTurns $QuarterTurns -FlipHorizontal $FlipHorizontal -FlipVertical $FlipVertical))
+    return $preview
+}
+
 function Show-FlipWindow {
+    param([Parameter(Mandatory = $true)][string]$ImagePath)
+
     [System.Windows.Forms.Application]::EnableVisualStyles()
+
+    $loadedImage = $null
+    $originalPreview = $null
+    $currentPreview = $null
+    $graphics = $null
+
+    try {
+        $loadedImage = [System.Drawing.Image]::FromFile($ImagePath)
+        $maxPreviewEdge = 512
+        $scale = [Math]::Min(($maxPreviewEdge / [double]$loadedImage.Width), ($maxPreviewEdge / [double]$loadedImage.Height))
+        if ($scale -gt 1.0) { $scale = 1.0 }
+
+        $previewWidth = [Math]::Max(1, [int][Math]::Round($loadedImage.Width * $scale))
+        $previewHeight = [Math]::Max(1, [int][Math]::Round($loadedImage.Height * $scale))
+
+        $originalPreview = New-Object System.Drawing.Bitmap($previewWidth, $previewHeight)
+        $graphics = [System.Drawing.Graphics]::FromImage($originalPreview)
+        $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+        $graphics.Clear([System.Drawing.Color]::Transparent)
+        $graphics.DrawImage($loadedImage, 0, 0, $previewWidth, $previewHeight)
+        $graphics.Dispose()
+        $graphics = $null
+        $loadedImage.Dispose()
+        $loadedImage = $null
+    }
+    catch {
+        if ($graphics) { $graphics.Dispose() }
+        if ($loadedImage) { $loadedImage.Dispose() }
+        throw
+    }
+
+    $script:quarterTurns = 0
+    $script:flipHorizontal = $false
+    $script:flipVertical = $false
+    $script:transformKeys = New-Object System.Collections.Generic.List[string]
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'FFActions - Rotate / flip image'
@@ -155,57 +250,115 @@ function Show-FlipWindow {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(420, 290)
+    $form.ClientSize = New-Object System.Drawing.Size(700, 590)
     $form.TopMost = $true
 
     $labelTitle = New-Object System.Windows.Forms.Label
-    $labelTitle.Location = New-Object System.Drawing.Point(20, 18)
-    $labelTitle.Size = New-Object System.Drawing.Size(360, 22)
-    $labelTitle.Text = 'Choose the transform to apply'
+    $labelTitle.Location = New-Object System.Drawing.Point(18, 14)
+    $labelTitle.Size = New-Object System.Drawing.Size(664, 22)
+    $labelTitle.Text = 'Preview the result, then validate when it looks right.'
     $form.Controls.Add($labelTitle)
 
-    $group = New-Object System.Windows.Forms.GroupBox
-    $group.Text = 'Transform'
-    $group.Location = New-Object System.Drawing.Point(18, 48)
-    $group.Size = New-Object System.Drawing.Size(384, 180)
-    $form.Controls.Add($group)
+    $previewPanel = New-Object System.Windows.Forms.Panel
+    $previewPanel.Location = New-Object System.Drawing.Point(18, 44)
+    $previewPanel.Size = New-Object System.Drawing.Size(664, 430)
+    $previewPanel.BackColor = [System.Drawing.Color]::FromArgb(36, 36, 36)
+    $form.Controls.Add($previewPanel)
 
-    $options = @(
-        @{ Key = 'rotate90';  Text = 'Rotate 90° clockwise';   X = 18;  Y = 28 },
-        @{ Key = 'rotate180'; Text = 'Rotate 180°';            X = 18;  Y = 58 },
-        @{ Key = 'rotate270'; Text = 'Rotate 270° clockwise';  X = 18;  Y = 88 },
-        @{ Key = 'flip_h';    Text = 'Mirror horizontal';      X = 18;  Y = 128 },
-        @{ Key = 'flip_v';    Text = 'Mirror vertical';        X = 200; Y = 128 }
+    $previewBox = New-Object System.Windows.Forms.PictureBox
+    $previewBox.Location = New-Object System.Drawing.Point(0, 0)
+    $previewBox.Size = $previewPanel.Size
+    $previewBox.BackColor = [System.Drawing.Color]::Transparent
+    $previewBox.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+    $previewPanel.Controls.Add($previewBox)
+
+    $buttonSpecs = @(
+        @{ Key = 'rotate90';  Glyph = '⟳'; X = 18;  Tooltip = 'Rotate 90 degrees clockwise' },
+        @{ Key = 'rotate270'; Glyph = '⟲'; X = 90;  Tooltip = 'Rotate 90 degrees counterclockwise' },
+        @{ Key = 'flip_h';    Glyph = '⇋'; X = 162; Tooltip = 'Mirror horizontally' },
+        @{ Key = 'flip_v';    Glyph = '⇅'; X = 234; Tooltip = 'Mirror vertically' }
     )
 
-    $radioButtons = @()
-    foreach ($item in $options) {
-        $radio = New-Object System.Windows.Forms.RadioButton
-        $radio.Text = $item.Text
-        $radio.Tag = $item.Key
-        $radio.Location = New-Object System.Drawing.Point($item.X, $item.Y)
-        $radio.Size = New-Object System.Drawing.Size(170, 24)
-        if ($item.Key -eq 'rotate90') { $radio.Checked = $true }
-        $group.Controls.Add($radio)
-        $radioButtons += $radio
-    }
+    $buttonFont = New-Object System.Drawing.Font('Segoe UI Symbol', 20, [System.Drawing.FontStyle]::Regular)
+    $buttonTooltip = New-Object System.Windows.Forms.ToolTip
+
+    $labelState = New-Object System.Windows.Forms.Label
+    $labelState.Location = New-Object System.Drawing.Point(18, 486)
+    $labelState.Size = New-Object System.Drawing.Size(420, 22)
+    $form.Controls.Add($labelState)
 
     $labelHint = New-Object System.Windows.Forms.Label
-    $labelHint.Location = New-Object System.Drawing.Point(20, 236)
-    $labelHint.Size = New-Object System.Drawing.Size(360, 18)
+    $labelHint.Location = New-Object System.Drawing.Point(18, 512)
+    $labelHint.Size = New-Object System.Drawing.Size(500, 18)
     $labelHint.Text = 'The transformed image will be created next to the original file.'
     $form.Controls.Add($labelHint)
 
+    $updatePreview = {
+        if ($currentPreview) {
+            $currentPreview.Dispose()
+            $currentPreview = $null
+        }
+
+        $currentPreview = New-PreviewBitmap -SourceBitmap $originalPreview -QuarterTurns $script:quarterTurns -FlipHorizontal $script:flipHorizontal -FlipVertical $script:flipVertical
+        $previewBox.Image = $currentPreview
+        $labelState.Text = Get-TransformSummary -QuarterTurns $script:quarterTurns -FlipHorizontal $script:flipHorizontal -FlipVertical $script:flipVertical
+    }
+
+    foreach ($spec in $buttonSpecs) {
+        $button = New-Object System.Windows.Forms.Button
+        $button.Tag = $spec.Key
+        $button.Text = $spec.Glyph
+        $button.Font = $buttonFont
+        $button.Location = New-Object System.Drawing.Point($spec.X, 536)
+        $button.Size = New-Object System.Drawing.Size(60, 36)
+        $buttonTooltip.SetToolTip($button, $spec.Tooltip)
+        $button.Add_Click({
+            param($sender, $eventArgs)
+            $key = [string]$sender.Tag
+            switch ($key) {
+                'rotate90' {
+                    $script:quarterTurns = ($script:quarterTurns + 1) % 4
+                }
+                'rotate270' {
+                    $script:quarterTurns = ($script:quarterTurns + 3) % 4
+                }
+                'flip_h' {
+                    $script:flipHorizontal = -not $script:flipHorizontal
+                }
+                'flip_v' {
+                    $script:flipVertical = -not $script:flipVertical
+                }
+            }
+
+            $script:transformKeys.Add($key) | Out-Null
+            & $updatePreview
+        })
+        $form.Controls.Add($button)
+    }
+
+    $buttonReset = New-Object System.Windows.Forms.Button
+    $buttonReset.Text = 'Reset'
+    $buttonReset.Location = New-Object System.Drawing.Point(376, 542)
+    $buttonReset.Size = New-Object System.Drawing.Size(90, 28)
+    $buttonReset.Add_Click({
+        $script:quarterTurns = 0
+        $script:flipHorizontal = $false
+        $script:flipVertical = $false
+        $script:transformKeys.Clear()
+        & $updatePreview
+    })
+    $form.Controls.Add($buttonReset)
+
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(206, 256)
+    $buttonOK.Location = New-Object System.Drawing.Point(490, 542)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(308, 256)
+    $buttonCancel.Location = New-Object System.Drawing.Point(592, 542)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)
@@ -213,21 +366,34 @@ function Show-FlipWindow {
     $form.AcceptButton = $buttonOK
     $form.CancelButton = $buttonCancel
 
+    & $updatePreview
+
     $result = $form.ShowDialog()
     if ($result -ne [System.Windows.Forms.DialogResult]::OK) {
+        $previewBox.Image = $null
+        if ($currentPreview) { $currentPreview.Dispose() }
+        if ($originalPreview) { $originalPreview.Dispose() }
         $form.Dispose()
         return $null
     }
 
-    $selected = $radioButtons | Where-Object { $_.Checked } | Select-Object -First 1
-    if ($null -eq $selected) {
+    if ($script:transformKeys.Count -eq 0) {
+        $previewBox.Image = $null
+        if ($currentPreview) { $currentPreview.Dispose() }
+        if ($originalPreview) { $originalPreview.Dispose() }
         $form.Dispose()
-        Show-Error 'No transform selected.'
+        Show-Error 'Apply at least one transform before validating.'
         exit 1
     }
 
-    $payload = Get-TransformConfig -Key ([string]$selected.Tag)
+    $payload = Get-TransformConfig -Keys $script:transformKeys.ToArray()
+
+    $previewBox.Image = $null
+    if ($currentPreview) { $currentPreview.Dispose() }
+    if ($originalPreview) { $originalPreview.Dispose() }
+    $buttonFont.Dispose()
     $form.Dispose()
+
     return $payload
 }
 
@@ -297,7 +463,7 @@ try {
         exit 1
     }
 
-    $transform = Show-FlipWindow
+$transform = Show-FlipWindow -ImagePath $InputFile
     if ($null -eq $transform) {
         exit 0
     }

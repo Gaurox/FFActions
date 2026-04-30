@@ -38,44 +38,55 @@ function Show-FormatPicker {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(320, 150)
+    $form.ClientSize = New-Object System.Drawing.Size(360, 144)
 
     $label = New-Object System.Windows.Forms.Label
     $label.Location = New-Object System.Drawing.Point(16, 16)
-    $label.Size = New-Object System.Drawing.Size(288, 34)
+    $label.Size = New-Object System.Drawing.Size(328, 34)
     $label.Text = ("Choose the output format for this {0} audio file." -f $SourceExtension.TrimStart('.').ToUpperInvariant())
+    $label.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 
-    $combo = New-Object System.Windows.Forms.ComboBox
-    $combo.Location = New-Object System.Drawing.Point(16, 58)
-    $combo.Size = New-Object System.Drawing.Size(288, 24)
-    $combo.DropDownStyle = 'DropDownList'
-    [void]$combo.Items.AddRange($Formats)
-    if ($combo.Items.Count -gt 0) {
-        $combo.SelectedIndex = 0
+    $buttonPanel = New-Object System.Windows.Forms.Panel
+    $buttonPanel.Location = New-Object System.Drawing.Point(16, 60)
+    $buttonPanel.Size = New-Object System.Drawing.Size(328, 42)
+
+    $buttonWidth = 56
+    $buttonSpacing = 8
+    $rowWidth = ($Formats.Count * $buttonWidth) + ([Math]::Max(0, $Formats.Count - 1) * $buttonSpacing)
+    $startX = [Math]::Max(0, [int](($buttonPanel.Width - $rowWidth) / 2))
+
+    for ($i = 0; $i -lt $Formats.Count; $i++) {
+        $format = [string]$Formats[$i]
+        $button = New-Object System.Windows.Forms.Button
+        $button.Text = $format.ToUpperInvariant()
+        $button.Size = New-Object System.Drawing.Size($buttonWidth, 30)
+        $button.Location = New-Object System.Drawing.Point(($startX + ($i * ($buttonWidth + $buttonSpacing))), 6)
+        $button.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
+        $button.Tag = $format
+        $button.Add_Click({
+            param($sender, $eventArgs)
+            $form.Tag = [string]$sender.Tag
+            $form.DialogResult = [System.Windows.Forms.DialogResult]::OK
+            $form.Close()
+        })
+        $buttonPanel.Controls.Add($button)
     }
 
-    $okButton = New-Object System.Windows.Forms.Button
-    $okButton.Location = New-Object System.Drawing.Point(148, 104)
-    $okButton.Size = New-Object System.Drawing.Size(75, 28)
-    $okButton.Text = 'OK'
-    $okButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
-
     $cancelButton = New-Object System.Windows.Forms.Button
-    $cancelButton.Location = New-Object System.Drawing.Point(229, 104)
+    $cancelButton.Location = New-Object System.Drawing.Point(269, 104)
     $cancelButton.Size = New-Object System.Drawing.Size(75, 28)
     $cancelButton.Text = 'Cancel'
     $cancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
 
-    $form.Controls.AddRange(@($label, $combo, $okButton, $cancelButton))
-    $form.AcceptButton = $okButton
+    $form.Controls.AddRange(@($label, $buttonPanel, $cancelButton))
     $form.CancelButton = $cancelButton
 
     $dialogResult = $form.ShowDialog()
-    if ($dialogResult -ne [System.Windows.Forms.DialogResult]::OK -or $combo.SelectedItem -eq $null) {
+    if ($dialogResult -ne [System.Windows.Forms.DialogResult]::OK -or [string]::IsNullOrWhiteSpace([string]$form.Tag)) {
         return $null
     }
 
-    return [string]$combo.SelectedItem
+    return [string]$form.Tag
 }
 
 #__FFCOMMON_INJECT_HERE__

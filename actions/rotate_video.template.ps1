@@ -167,21 +167,195 @@ function Get-ShortErrorText {
     return 'FFmpeg failed during video transform.'
 }
 
-function Get-TransformConfig {
-    param([string]$Key)
+function New-PreviewBitmap {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][int]$MaxWidth,
+        [Parameter(Mandatory = $true)][int]$MaxHeight
+    )
 
-    switch ($Key) {
-        'rotate90'  { return [PSCustomObject]@{ Filter = 'transpose=1'; Label = 'rotate90'; Text = 'Rotate 90° clockwise' } }
-        'rotate180' { return [PSCustomObject]@{ Filter = 'transpose=1,transpose=1'; Label = 'rotate180'; Text = 'Rotate 180°' } }
-        'rotate270' { return [PSCustomObject]@{ Filter = 'transpose=2'; Label = 'rotate270'; Text = 'Rotate 270° clockwise' } }
-        'flip_h'    { return [PSCustomObject]@{ Filter = 'hflip'; Label = 'flipH'; Text = 'Mirror horizontal' } }
-        'flip_v'    { return [PSCustomObject]@{ Filter = 'vflip'; Label = 'flipV'; Text = 'Mirror vertical' } }
-        default     { throw 'Unknown video transform.' }
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $source = [System.Drawing.Image]::FromStream($stream, $false, $false)
+        try {
+            $scale = [Math]::Min(($MaxWidth / [double]$source.Width), ($MaxHeight / [double]$source.Height))
+            if ($scale -gt 1.0) { $scale = 1.0 }
+            $previewWidth = [Math]::Max(1, [int][Math]::Round($source.Width * $scale))
+            $previewHeight = [Math]::Max(1, [int][Math]::Round($source.Height * $scale))
+
+            $bitmap = New-Object System.Drawing.Bitmap($previewWidth, $previewHeight)
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            try {
+                $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                $graphics.DrawImage($source, 0, 0, $previewWidth, $previewHeight)
+            }
+            finally {
+                $graphics.Dispose()
+            }
+
+            return $bitmap
+        }
+        finally {
+            $source.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
     }
 }
 
+function New-VideoPreviewBitmap {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputFile,
+        [Parameter(Mandatory = $true)][string]$FfmpegPath,
+        [Parameter(Mandatory = $true)][double]$TimeSeconds,
+        [Parameter(Mandatory = $true)][int]$MaxWidth,
+        [Parameter(Mandatory = $true)][int]$MaxHeight
+    )
+
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+    $safeSeconds = [Math]::Max(0.0, $TimeSeconds)
+    $timeText = $safeSeconds.ToString('0.###', $culture)
+    $tmpPath = Join-Path ([System.IO.Path]::GetTempPath()) ("ffactions_video_rotate_preview_{0}.png" -f ([guid]::NewGuid().ToString('N')))
+
+    try {
+        $args = @(
+            '-hide_banner',
+            '-loglevel', 'error',
+            '-y',
+            '-ss', $timeText,
+            '-i', $InputFile,
+            '-frames:v', '1',
+            $tmpPath
+        )
+
+        $result = Invoke-HiddenProcess -FilePath $FfmpegPath -Arguments $args
+        if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $tmpPath)) {
+            throw (Get-ShortErrorText -StdErr $result.StdErr)
+        }
+
+        return New-PreviewBitmap -Path $tmpPath -MaxWidth $MaxWidth -MaxHeight $MaxHeight
+    }
+    finally {
+        Remove-Item -LiteralPath $tmpPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Format-TimeForDisplay {
+    param([Parameter(Mandatory = $true)][double]$Seconds)
+
+    if ($Seconds -lt 0) { $Seconds = 0 }
+    $hours = [int][Math]::Floor($Seconds / 3600)
+    $remaining = $Seconds - ($hours * 3600)
+    $minutes = [int][Math]::Floor($remaining / 60)
+    $secs = $remaining - ($minutes * 60)
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+
+    return [string]::Format($culture, '{0:D2}:{1:D2}:{2:00.000}', $hours, $minutes, $secs)
+}
+
+function Get-RotateFlipType {
+    param(
+        [Parameter(Mandatory = $true)][int]$QuarterTurns,
+        [Parameter(Mandatory = $true)][bool]$FlipHorizontal,
+        [Parameter(Mandatory = $true)][bool]$FlipVertical
+    )
+
+    $turn = (($QuarterTurns % 4) + 4) % 4
+    $suffix = if ($FlipHorizontal -and $FlipVertical) {
+        'XY'
+    }
+    elseif ($FlipHorizontal) {
+        'X'
+    }
+    elseif ($FlipVertical) {
+        'Y'
+    }
+    else {
+        'None'
+    }
+
+    $name = switch ($turn) {
+        1 { "Rotate90Flip${suffix}" }
+        2 { "Rotate180Flip${suffix}" }
+        3 { "Rotate270Flip${suffix}" }
+        default { "RotateNoneFlip${suffix}" }
+    }
+
+    return [System.Drawing.RotateFlipType]::$name
+}
+
+function Get-TransformSummary {
+    param(
+        [Parameter(Mandatory = $true)][int]$QuarterTurns,
+        [Parameter(Mandatory = $true)][bool]$FlipHorizontal,
+        [Parameter(Mandatory = $true)][bool]$FlipVertical
+    )
+
+    $rotation = ((($QuarterTurns % 4) + 4) % 4) * 90
+    $parts = @("Rotation: ${rotation}°")
+    $parts += if ($FlipHorizontal) { 'Mirror H: on' } else { 'Mirror H: off' }
+    $parts += if ($FlipVertical) { 'Mirror V: on' } else { 'Mirror V: off' }
+    return ($parts -join '   ')
+}
+
+function Get-TransformConfig {
+    param([string[]]$Keys)
+
+    if ($null -eq $Keys -or $Keys.Count -eq 0) {
+        throw 'No video transform selected.'
+    }
+
+    $filters = New-Object System.Collections.Generic.List[string]
+    foreach ($key in $Keys) {
+        switch ($key) {
+            'rotate90'  { $filters.Add('transpose=1') | Out-Null }
+            'rotate270' { $filters.Add('transpose=2') | Out-Null }
+            'flip_h'    { $filters.Add('hflip') | Out-Null }
+            'flip_v'    { $filters.Add('vflip') | Out-Null }
+            default     { throw 'Unknown video transform.' }
+        }
+    }
+
+    return [PSCustomObject]@{
+        Filter = ($filters -join ',')
+        Label  = ($Keys -join '_')
+        Text   = 'video transform'
+    }
+}
+
+function New-TransformedPreviewBitmap {
+    param(
+        [Parameter(Mandatory = $true)][System.Drawing.Bitmap]$SourceBitmap,
+        [Parameter(Mandatory = $true)][int]$QuarterTurns,
+        [Parameter(Mandatory = $true)][bool]$FlipHorizontal,
+        [Parameter(Mandatory = $true)][bool]$FlipVertical
+    )
+
+    $preview = New-Object System.Drawing.Bitmap($SourceBitmap)
+    $preview.RotateFlip((Get-RotateFlipType -QuarterTurns $QuarterTurns -FlipHorizontal $FlipHorizontal -FlipVertical $FlipVertical))
+    return $preview
+}
+
 function Show-RotateVideoWindow {
+    param(
+        [Parameter(Mandatory = $true)][string]$VideoPath,
+        [Parameter(Mandatory = $true)][string]$FfmpegPath,
+        [Parameter(Mandatory = $true)][double]$DurationSeconds
+    )
+
     [System.Windows.Forms.Application]::EnableVisualStyles()
+
+    $script:quarterTurns = 0
+    $script:flipHorizontal = $false
+    $script:flipVertical = $false
+    $script:transformKeys = New-Object System.Collections.Generic.List[string]
+    $script:basePreviewBitmap = $null
+    $script:currentPreviewBitmap = $null
+    $script:pendingPreviewSeconds = 0.0
+    $script:currentPreviewSeconds = 0.0
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'FFActions - Rotate / flip video'
@@ -189,77 +363,247 @@ function Show-RotateVideoWindow {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(430, 305)
+    $form.ClientSize = New-Object System.Drawing.Size(700, 638)
     $form.TopMost = $true
 
     $labelTitle = New-Object System.Windows.Forms.Label
-    $labelTitle.Location = New-Object System.Drawing.Point(20, 16)
-    $labelTitle.Size = New-Object System.Drawing.Size(380, 22)
-    $labelTitle.Text = 'Choose the transform to apply'
+    $labelTitle.Location = New-Object System.Drawing.Point(18, 14)
+    $labelTitle.Size = New-Object System.Drawing.Size(664, 22)
+    $labelTitle.Text = 'Preview the result, choose a frame if needed, then validate.'
     $form.Controls.Add($labelTitle)
 
-    $group = New-Object System.Windows.Forms.GroupBox
-    $group.Text = 'Transform'
-    $group.Location = New-Object System.Drawing.Point(18, 46)
-    $group.Size = New-Object System.Drawing.Size(392, 185)
-    $form.Controls.Add($group)
+    $previewPanel = New-Object System.Windows.Forms.Panel
+    $previewPanel.Location = New-Object System.Drawing.Point(18, 44)
+    $previewPanel.Size = New-Object System.Drawing.Size(664, 380)
+    $previewPanel.BackColor = [System.Drawing.Color]::FromArgb(36, 36, 36)
+    $form.Controls.Add($previewPanel)
 
-    $options = @(
-        @{ Key = 'rotate90';  Text = 'Rotate 90° clockwise';  X = 18;  Y = 28; Width = 180 },
-        @{ Key = 'rotate180'; Text = 'Rotate 180°';           X = 18;  Y = 58; Width = 180 },
-        @{ Key = 'rotate270'; Text = 'Rotate 270° clockwise'; X = 18;  Y = 88; Width = 180 },
-        @{ Key = 'flip_h';    Text = 'Mirror horizontal';     X = 18;  Y = 128; Width = 170 },
-        @{ Key = 'flip_v';    Text = 'Mirror vertical';       X = 205; Y = 128; Width = 160 }
+    $previewBox = New-Object System.Windows.Forms.PictureBox
+    $previewBox.Location = New-Object System.Drawing.Point(0, 0)
+    $previewBox.Size = $previewPanel.Size
+    $previewBox.BackColor = [System.Drawing.Color]::Transparent
+    $previewBox.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+    $previewPanel.Controls.Add($previewBox)
+
+    $trackPreview = New-Object System.Windows.Forms.TrackBar
+    $trackPreview.Location = New-Object System.Drawing.Point(18, 434)
+    $trackPreview.Size = New-Object System.Drawing.Size(664, 45)
+    $trackPreview.Minimum = 0
+    $trackPreview.Maximum = 1000
+    $trackPreview.TickFrequency = 100
+    $trackPreview.SmallChange = 5
+    $trackPreview.LargeChange = 50
+    $form.Controls.Add($trackPreview)
+
+    $labelFrame = New-Object System.Windows.Forms.Label
+    $labelFrame.Location = New-Object System.Drawing.Point(18, 478)
+    $labelFrame.Size = New-Object System.Drawing.Size(220, 18)
+    $form.Controls.Add($labelFrame)
+
+    $buttonSpecs = @(
+        @{ Key = 'rotate90';  Glyph = '⟳'; X = 18;  Tooltip = 'Rotate 90 degrees clockwise' },
+        @{ Key = 'rotate270'; Glyph = '⟲'; X = 90;  Tooltip = 'Rotate 90 degrees counterclockwise' },
+        @{ Key = 'flip_h';    Glyph = '⇋'; X = 162; Tooltip = 'Mirror horizontally' },
+        @{ Key = 'flip_v';    Glyph = '⇅'; X = 234; Tooltip = 'Mirror vertically' }
     )
 
-    $radioButtons = @()
-    foreach ($item in $options) {
-        $radio = New-Object System.Windows.Forms.RadioButton
-        $radio.Text = $item.Text
-        $radio.Tag = $item.Key
-        $radio.Location = New-Object System.Drawing.Point($item.X, $item.Y)
-        $radio.Size = New-Object System.Drawing.Size($item.Width, 24)
-        if ($item.Key -eq 'rotate90') { $radio.Checked = $true }
-        $group.Controls.Add($radio)
-        $radioButtons += $radio
-    }
+    $buttonFont = New-Object System.Drawing.Font('Segoe UI Symbol', 20, [System.Drawing.FontStyle]::Regular)
+    $buttonTooltip = New-Object System.Windows.Forms.ToolTip
+
+    $labelState = New-Object System.Windows.Forms.Label
+    $labelState.Location = New-Object System.Drawing.Point(18, 508)
+    $labelState.Size = New-Object System.Drawing.Size(430, 22)
+    $form.Controls.Add($labelState)
 
     $labelNote = New-Object System.Windows.Forms.Label
-    $labelNote.Location = New-Object System.Drawing.Point(20, 238)
-    $labelNote.Size = New-Object System.Drawing.Size(390, 34)
+    $labelNote.Location = New-Object System.Drawing.Point(18, 534)
+    $labelNote.Size = New-Object System.Drawing.Size(500, 18)
     $labelNote.Text = 'The output video is created next to the original file. Audio is kept when possible.'
     $form.Controls.Add($labelNote)
 
+    function Dispose-PreviewBitmaps {
+        if ($previewBox.Image) {
+            $previewBox.Image = $null
+        }
+        if ($script:currentPreviewBitmap) {
+            $script:currentPreviewBitmap.Dispose()
+            $script:currentPreviewBitmap = $null
+        }
+        if ($script:basePreviewBitmap) {
+            $script:basePreviewBitmap.Dispose()
+            $script:basePreviewBitmap = $null
+        }
+    }
+
+    function Update-FrameLabel {
+        param([Parameter(Mandatory = $true)][double]$Seconds)
+        $labelFrame.Text = "Frame: $(Format-TimeForDisplay -Seconds $Seconds)"
+    }
+
+    function Update-PreviewBitmap {
+        if ($script:currentPreviewBitmap) {
+            $previewBox.Image = $null
+            $script:currentPreviewBitmap.Dispose()
+            $script:currentPreviewBitmap = $null
+        }
+
+        if ($script:basePreviewBitmap) {
+            $script:currentPreviewBitmap = New-TransformedPreviewBitmap -SourceBitmap $script:basePreviewBitmap -QuarterTurns $script:quarterTurns -FlipHorizontal $script:flipHorizontal -FlipVertical $script:flipVertical
+            $previewBox.Image = $script:currentPreviewBitmap
+        }
+
+        $labelState.Text = Get-TransformSummary -QuarterTurns $script:quarterTurns -FlipHorizontal $script:flipHorizontal -FlipVertical $script:flipVertical
+    }
+
+    function Load-PreviewFrame {
+        param([Parameter(Mandatory = $true)][double]$Seconds)
+
+        $newBitmap = New-VideoPreviewBitmap -InputFile $VideoPath -FfmpegPath $FfmpegPath -TimeSeconds $Seconds -MaxWidth 640 -MaxHeight 380
+        if ($script:basePreviewBitmap) {
+            $script:basePreviewBitmap.Dispose()
+        }
+        $script:basePreviewBitmap = $newBitmap
+        $script:currentPreviewSeconds = $Seconds
+        Update-FrameLabel -Seconds $Seconds
+        Update-PreviewBitmap
+    }
+
+    $previewTimer = New-Object System.Windows.Forms.Timer
+    $previewTimer.Interval = 140
+    $previewTimer.Add_Tick({
+        $previewTimer.Stop()
+        try {
+            Load-PreviewFrame -Seconds $script:pendingPreviewSeconds
+        }
+        catch {
+            Show-ErrorAndExit $_.Exception.Message
+        }
+    })
+
+    foreach ($spec in $buttonSpecs) {
+        $button = New-Object System.Windows.Forms.Button
+        $button.Tag = $spec.Key
+        $button.Text = $spec.Glyph
+        $button.Font = $buttonFont
+        $button.Location = New-Object System.Drawing.Point($spec.X, 570)
+        $button.Size = New-Object System.Drawing.Size(60, 36)
+        $buttonTooltip.SetToolTip($button, $spec.Tooltip)
+        $button.Add_Click({
+            param($sender, $eventArgs)
+            $key = [string]$sender.Tag
+            switch ($key) {
+                'rotate90' {
+                    $script:quarterTurns = ($script:quarterTurns + 1) % 4
+                }
+                'rotate270' {
+                    $script:quarterTurns = ($script:quarterTurns + 3) % 4
+                }
+                'flip_h' {
+                    $script:flipHorizontal = -not $script:flipHorizontal
+                }
+                'flip_v' {
+                    $script:flipVertical = -not $script:flipVertical
+                }
+            }
+
+            $script:transformKeys.Add($key) | Out-Null
+            Update-PreviewBitmap
+        })
+        $form.Controls.Add($button)
+    }
+
+    $buttonReset = New-Object System.Windows.Forms.Button
+    $buttonReset.Text = 'Reset'
+    $buttonReset.Location = New-Object System.Drawing.Point(376, 576)
+    $buttonReset.Size = New-Object System.Drawing.Size(90, 28)
+    $buttonReset.Add_Click({
+        $script:quarterTurns = 0
+        $script:flipHorizontal = $false
+        $script:flipVertical = $false
+        $script:transformKeys.Clear()
+        Update-PreviewBitmap
+    })
+    $form.Controls.Add($buttonReset)
+
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(215, 272)
+    $buttonOK.Location = New-Object System.Drawing.Point(490, 576)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(318, 272)
+    $buttonCancel.Location = New-Object System.Drawing.Point(592, 576)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)
 
+    $trackPreview.Add_ValueChanged({
+        $ratio = if ($trackPreview.Maximum -gt 0) { $trackPreview.Value / [double]$trackPreview.Maximum } else { 0.0 }
+        $safeDuration = [Math]::Max(0.0, $DurationSeconds - 0.05)
+        $script:pendingPreviewSeconds = [Math]::Min($safeDuration, ($DurationSeconds * $ratio))
+        Update-FrameLabel -Seconds $script:pendingPreviewSeconds
+        $previewTimer.Stop()
+        $previewTimer.Start()
+    })
+
+    $trackPreview.Add_MouseUp({
+        $previewTimer.Stop()
+        try {
+            Load-PreviewFrame -Seconds $script:pendingPreviewSeconds
+        }
+        catch {
+            Show-ErrorAndExit $_.Exception.Message
+        }
+    })
+
+    $trackPreview.Add_KeyUp({
+        $previewTimer.Stop()
+        try {
+            Load-PreviewFrame -Seconds $script:pendingPreviewSeconds
+        }
+        catch {
+            Show-ErrorAndExit $_.Exception.Message
+        }
+    })
+
     $form.AcceptButton = $buttonOK
     $form.CancelButton = $buttonCancel
 
+    try {
+        Load-PreviewFrame -Seconds 0.0
+    }
+    catch {
+        Dispose-PreviewBitmaps
+        $previewTimer.Dispose()
+        $buttonFont.Dispose()
+        $form.Dispose()
+        Show-ErrorAndExit $_.Exception.Message
+    }
+
     $result = $form.ShowDialog()
+    $previewTimer.Stop()
     if ($result -ne [System.Windows.Forms.DialogResult]::OK) {
+        Dispose-PreviewBitmaps
+        $previewTimer.Dispose()
+        $buttonFont.Dispose()
         $form.Dispose()
         return $null
     }
 
-    $selected = $radioButtons | Where-Object { $_.Checked } | Select-Object -First 1
-    if ($null -eq $selected) {
+    if ($script:transformKeys.Count -eq 0) {
+        Dispose-PreviewBitmaps
+        $previewTimer.Dispose()
+        $buttonFont.Dispose()
         $form.Dispose()
-        Show-ErrorAndExit 'No transform selected.'
+        Show-ErrorAndExit 'Apply at least one transform before validating.'
     }
 
-    $payload = Get-TransformConfig -Key ([string]$selected.Tag)
+    $payload = Get-TransformConfig -Keys $script:transformKeys.ToArray()
+    Dispose-PreviewBitmaps
+    $previewTimer.Dispose()
+    $buttonFont.Dispose()
     $form.Dispose()
     return $payload
 }
@@ -449,11 +793,6 @@ if ($extension -notin @('.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v')) {
     Show-ErrorAndExit 'Unsupported file format. Supported: .mp4, .mkv, .avi, .mov, .webm, .m4v'
 }
 
-$transform = Show-RotateVideoWindow
-if ($null -eq $transform) {
-    exit 0
-}
-
 $ffmpegPath = Get-ToolPath -ToolName 'ffmpeg.exe'
 $ffprobePath = Get-ToolPath -ToolName 'ffprobe.exe'
 
@@ -470,6 +809,11 @@ try {
 }
 catch {
     Show-ErrorAndExit $_.Exception.Message
+}
+
+$transform = Show-RotateVideoWindow -VideoPath $InputFile -FfmpegPath $ffmpegPath -DurationSeconds $durationSeconds
+if ($null -eq $transform) {
+    exit 0
 }
 
 $nvencAvailable = Test-NvencAvailable -FfmpegPath $ffmpegPath

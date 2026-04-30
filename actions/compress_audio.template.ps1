@@ -363,7 +363,7 @@ function Show-CompressAudioWindow {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(520, 325)
+    $form.ClientSize = New-Object System.Drawing.Size(520, 356)
     $form.TopMost = $true
 
     $labelInfo = New-Object System.Windows.Forms.Label
@@ -375,7 +375,7 @@ function Show-CompressAudioWindow {
     $groupPreset = New-Object System.Windows.Forms.GroupBox
     $groupPreset.Text = 'Compression level'
     $groupPreset.Location = New-Object System.Drawing.Point(18, 60)
-    $groupPreset.Size = New-Object System.Drawing.Size(482, 92)
+    $groupPreset.Size = New-Object System.Drawing.Size(482, 116)
     $form.Controls.Add($groupPreset)
 
     $radioHigh = New-Object System.Windows.Forms.RadioButton
@@ -398,14 +398,14 @@ function Show-CompressAudioWindow {
     $groupPreset.Controls.Add($radioSmall)
 
     $labelPresetHint = New-Object System.Windows.Forms.Label
-    $labelPresetHint.Location = New-Object System.Drawing.Point(18, 58)
-    $labelPresetHint.Size = New-Object System.Drawing.Size(430, 18)
-    $labelPresetHint.Text = 'High quality keeps more detail, Small file reduces bitrate and sample rate more strongly.'
+    $labelPresetHint.Location = New-Object System.Drawing.Point(18, 54)
+    $labelPresetHint.Size = New-Object System.Drawing.Size(440, 44)
+    $labelPresetHint.Text = 'High quality keeps more detail.' + "`r`n" + 'Small file reduces bitrate and sample rate more strongly.'
     $groupPreset.Controls.Add($labelPresetHint)
 
     $groupTarget = New-Object System.Windows.Forms.GroupBox
     $groupTarget.Text = 'Optional target size'
-    $groupTarget.Location = New-Object System.Drawing.Point(18, 165)
+    $groupTarget.Location = New-Object System.Drawing.Point(18, 189)
     $groupTarget.Size = New-Object System.Drawing.Size(482, 76)
     $form.Controls.Add($groupTarget)
 
@@ -448,21 +448,21 @@ function Show-CompressAudioWindow {
     })
 
     $labelNote = New-Object System.Windows.Forms.Label
-    $labelNote.Location = New-Object System.Drawing.Point(18, 250)
+    $labelNote.Location = New-Object System.Drawing.Point(18, 274)
     $labelNote.Size = New-Object System.Drawing.Size(475, 30)
     $labelNote.Text = 'The compressed audio file is created next to the original file. The format stays the same.'
     $form.Controls.Add($labelNote)
 
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(308, 287)
+    $buttonOK.Location = New-Object System.Drawing.Point(308, 316)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(410, 287)
+    $buttonCancel.Location = New-Object System.Drawing.Point(410, 316)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)
