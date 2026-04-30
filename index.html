@@ -54,7 +54,7 @@
 
     <section class="section menus single-menu">
       <div class="menu-shot">
-        <img src="screenshots/MenuVideo.png" alt="FFActions video context menu" />
+        <img data-shot="MenuVideo.png" src="./screenshots/MenuVideo.png" alt="FFActions video context menu" />
         <h3>Video context menu</h3>
       </div>
     </section>
@@ -108,42 +108,42 @@
 
       <div class="screenshot-grid">
         <article class="screenshot-card large">
-          <img src="screenshots/CutVideo.jpg" alt="Cut video tool" />
+          <img data-shot="CutVideo.jpg" src="./screenshots/CutVideo.jpg" alt="Cut video tool" />
           <div><h3>Cut video</h3><p>Live preview, dual-handle timeline, frame and time inputs.</p></div>
         </article>
 
         <article class="screenshot-card large">
-          <img src="screenshots/CropVideo.jpg" alt="Crop video tool" />
+          <img data-shot="CropVideo.jpg" src="./screenshots/CropVideo.jpg" alt="Crop video tool" />
           <div><h3>Crop video</h3><p>Preview frame, ratio presets, center and reset controls.</p></div>
         </article>
 
         <article class="screenshot-card">
-          <img src="screenshots/CutAudio.jpg" alt="Cut audio waveform tool" />
+          <img data-shot="CutAudio.jpg" src="./screenshots/CutAudio.jpg" alt="Cut audio waveform tool" />
           <div><h3>Cut audio</h3><p>Waveform preview, selection playback, remove or silence selection.</p></div>
         </article>
 
         <article class="screenshot-card">
-          <img src="screenshots/ResizeImage.jpg" alt="Resize image tool" />
+          <img data-shot="ResizeImage.jpg" src="./screenshots/ResizeImage.jpg" alt="Resize image tool" />
           <div><h3>Resize image</h3><p>Pixel and percentage resize with automatic ratio handling.</p></div>
         </article>
 
         <article class="screenshot-card">
-          <img src="screenshots/CreateGif.jpg" alt="Create GIF tool" />
+          <img data-shot="CreateGif.jpg" src="./screenshots/CreateGif.jpg" alt="Create GIF tool" />
           <div><h3>Create GIF</h3><p>Resolution, FPS and quality presets.</p></div>
         </article>
 
         <article class="screenshot-card">
-          <img src="screenshots/ChangeAudioPitch.jpg" alt="Change audio pitch tool" />
+          <img data-shot="ChangeAudioPitch.jpg" src="./screenshots/ChangeAudioPitch.jpg" alt="Change audio pitch tool" />
           <div><h3>Change pitch</h3><p>Semitone and percentage controls with optional duration preservation.</p></div>
         </article>
 
         <article class="screenshot-card">
-          <img src="screenshots/RotateFlipImage.jpg" alt="Rotate and flip image tool" />
+          <img data-shot="RotateFlipImage.jpg" src="./screenshots/RotateFlipImage.jpg" alt="Rotate and flip image tool" />
           <div><h3>Rotate / flip image</h3><p>Visual preview with direct transform buttons.</p></div>
         </article>
 
         <article class="screenshot-card">
-          <img src="screenshots/ConvertVideo.jpg" alt="Convert video format picker" />
+          <img data-shot="ConvertVideo.jpg" src="./screenshots/ConvertVideo.jpg" alt="Convert video format picker" />
           <div><h3>Format pickers</h3><p>Compact direct-click dialogs for conversion actions.</p></div>
         </article>
       </div>
@@ -168,5 +168,41 @@
       <a href="https://ffmpeg.org/legal.html" target="_blank" rel="noreferrer">FFmpeg license information</a>
     </p>
   </footer>
+  <script>
+    (function () {
+      const images = Array.from(document.querySelectorAll('img[data-shot]'));
+      if (!images.length) return;
+
+      const pathname = window.location.pathname.replace(/\\/g, '/');
+      const candidates = [];
+
+      if (window.location.protocol === 'file:') {
+        candidates.push('./screenshots/');
+      } else {
+        candidates.push(new URL('./screenshots/', window.location.href).href);
+        if (pathname.toLowerCase().includes('/ffactions/')) {
+          candidates.push(window.location.origin + '/FFActions/screenshots/');
+        }
+        candidates.push(window.location.origin + '/screenshots/');
+        candidates.push('https://raw.githubusercontent.com/Gaurox/FFActions/main/screenshots/');
+      }
+
+      const uniqueCandidates = [...new Set(candidates)];
+
+      images.forEach((img) => {
+        const fileName = img.getAttribute('data-shot');
+        let attempt = 0;
+
+        const applyCandidate = () => {
+          if (attempt >= uniqueCandidates.length) return;
+          img.src = uniqueCandidates[attempt] + fileName;
+          attempt += 1;
+        };
+
+        img.addEventListener('error', applyCandidate, { once: false });
+        applyCandidate();
+      });
+    })();
+  </script>
 </body>
 </html>
