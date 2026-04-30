@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FFActions - Right-click media tools for Windows</title>
-  <meta name="description" content="FFActions adds fast right-click tools to process video, audio and image files locally on Windows." />
+  <title>FFActions - Fast right-click FFmpeg tools for Windows</title>
+  <meta name="description" content="FFActions adds fast right-click FFmpeg tools to cut, convert, compress and edit video, audio and image files locally on Windows." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="hero">
     <nav class="nav">
-      <a class="logo" href="#top">FFActions</a>
+      <a class="logo" href="#top"><span class="logo-mark"></span>FFActions</a>
       <div class="nav-links">
+        <a href="#use-cases">Use cases</a>
         <a href="#features">Features</a>
         <a href="#screenshots">Screenshots</a>
         <a href="#download">Download</a>
@@ -22,26 +23,31 @@
     <div id="top" class="hero-content">
       <div class="hero-text">
         <p class="eyebrow">Windows context-menu media tools</p>
-        <h1>Fast FFmpeg actions from right-click.</h1>
+        <h1>Do the FFmpeg jobs you need from a simple right-click.</h1>
         <p class="lead">
-          Process videos, audio files and images without opening heavy software.
-          FFActions adds focused tools directly to the Windows context menu.
+          Extract music from a video, cut a clip, shrink a file before sending it,
+          create a GIF, resize an image or convert formats without opening a heavy editor.
         </p>
         <div class="hero-buttons">
           <a class="button primary" href="https://github.com/Gaurox/FFActions/releases" target="_blank" rel="noreferrer">Download latest release</a>
           <a class="button secondary" href="https://github.com/Gaurox/FFActions" target="_blank" rel="noreferrer">View source</a>
         </div>
+        <div class="hero-pills">
+          <span>No cloud</span>
+          <span>No account</span>
+          <span>No source overwrite</span>
+        </div>
       </div>
-
     </div>
   </header>
 
   <main>
-    <section class="section center">
+    <section class="section center intro-section">
+      <p class="eyebrow">Simple workflow</p>
       <h2>Right-click. Choose an action. Get a new file.</h2>
       <p class="section-text">
-        Each operation creates an output next to the original file and keeps the source untouched.
-        Simple dialogs, clear options, local processing.
+        FFActions creates the result next to the original file and keeps your source untouched.
+        Short dialogs, clear options, local processing.
       </p>
       <div class="flow">
         <div>Right-click file</div>
@@ -52,34 +58,92 @@
       </div>
     </section>
 
-    <section class="section menus single-menu">
-      <div class="menu-shot">
-        <img data-shot="MenuVideo.png" src="./screenshots/MenuVideo.png" alt="FFActions video context menu" />
-        <h3>Video context menu</h3>
+    <section id="use-cases" class="section use-cases">
+      <div class="section-heading center-heading">
+        <p class="eyebrow">Real-life shortcuts</p>
+        <h2>Made for the small jobs that usually waste time.</h2>
+      </div>
+
+      <div class="use-grid">
+        <article class="use-card highlight">
+          <h3>Extract the music from your video.</h3>
+          <p>Turn a video soundtrack into an audio file in a few clicks.</p>
+        </article>
+        <article class="use-card">
+          <h3>Reduce a file before sending it.</h3>
+          <p>Compress videos, images or audio files with simple quality presets.</p>
+        </article>
+        <article class="use-card">
+          <h3>Cut the useful part only.</h3>
+          <p>Trim videos visually by frame, or cut audio using a waveform preview.</p>
+        </article>
+        <article class="use-card">
+          <h3>Create a GIF without a video editor.</h3>
+          <p>Choose the start, duration, size, FPS and quality from a compact dialog.</p>
+        </article>
+        <article class="use-card">
+          <h3>Fix orientation instantly.</h3>
+          <p>Rotate or flip videos and images with a visual preview before exporting.</p>
+        </article>
+        <article class="use-card">
+          <h3>Convert formats when a file will not open.</h3>
+          <p>Switch between common video, audio and image formats from direct buttons.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section menus">
+      <div class="menu-copy">
+        <p class="eyebrow">Context menu</p>
+        <h2>Your tools appear exactly where your files are.</h2>
+        <p>
+          No project window, no import step, no timeline to configure.
+          Video, audio and image actions each get their own focused menu.
+        </p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-shot">
+          <img data-shot="MenuVideo.png" src="./screenshots/MenuVideo.png" alt="FFActions video context menu" />
+          <h3>Video menu</h3>
+        </div>
+        <div class="menu-shot">
+          <img data-shot="MenuAudio.png" src="./screenshots/MenuAudio.png" alt="FFActions audio context menu" />
+          <h3>Audio menu</h3>
+        </div>
+        <div class="menu-shot">
+          <img data-shot="MenuImage.png" src="./screenshots/MenuImage.png" alt="FFActions image context menu" />
+          <h3>Image menu</h3>
+        </div>
       </div>
     </section>
 
     <section id="features" class="section">
       <div class="section-heading">
         <p class="eyebrow">Features</p>
-        <h2>Built for common media tasks.</h2>
+        <h2>Practical actions, still described clearly.</h2>
+        <p>
+          The page stays readable for normal users, but each tool keeps its factual description and supported formats.
+        </p>
       </div>
 
       <div class="feature-grid">
         <article class="feature-card">
           <h3>Video</h3>
+          <p class="sell-line">Cut clips, create GIFs, compress videos, extract soundtracks and convert files quickly.</p>
           <p>Cut video, crop video, create GIF, resize video, rotate / flip, interpolate, compress, convert, extract audio and remove audio.</p>
           <p class="formats">mp4 · mkv · avi · mov · webm · m4v</p>
         </article>
 
         <article class="feature-card">
           <h3>Audio</h3>
+          <p class="sell-line">Trim a recording, change speed or pitch, reverse a sound and reduce file size.</p>
           <p>Cut audio with waveform preview, convert, change speed, change pitch, reverse and compress audio files.</p>
           <p class="formats">mp3 · wav · flac · m4a · ogg</p>
         </article>
 
         <article class="feature-card">
           <h3>Image</h3>
+          <p class="sell-line">Resize for upload, crop the useful area, convert formats or create an icon.</p>
           <p>Resize, crop, convert, compress, rotate / flip and convert images to icon files.</p>
           <p class="formats">png · jpg · jpeg · webp · bmp · ico output</p>
         </article>
@@ -87,6 +151,7 @@
     </section>
 
     <section class="section dark">
+      <p class="eyebrow green">Local and transparent</p>
       <h2>No cloud. No account. No complex workspace.</h2>
       <p>
         FFActions runs locally on Windows and uses FFmpeg / FFprobe under the hood.
@@ -103,28 +168,28 @@
     <section id="screenshots" class="section">
       <div class="section-heading">
         <p class="eyebrow">Screenshots</p>
-        <h2>Small dialogs for focused actions.</h2>
+        <h2>Sharper dialogs for the 1.2.2 tools.</h2>
       </div>
 
       <div class="screenshot-grid">
-        <article class="screenshot-card large">
+        <article class="screenshot-card wide">
           <img data-shot="CutVideo.jpg" src="./screenshots/CutVideo.jpg" alt="Cut video tool" />
           <div><h3>Cut video</h3><p>Live preview, dual-handle timeline, frame and time inputs.</p></div>
         </article>
 
-        <article class="screenshot-card large">
+        <article class="screenshot-card wide">
           <img data-shot="CropVideo.jpg" src="./screenshots/CropVideo.jpg" alt="Crop video tool" />
           <div><h3>Crop video</h3><p>Preview frame, ratio presets, center and reset controls.</p></div>
         </article>
 
-        <article class="screenshot-card">
+        <article class="screenshot-card wide">
           <img data-shot="CutAudio.jpg" src="./screenshots/CutAudio.jpg" alt="Cut audio waveform tool" />
           <div><h3>Cut audio</h3><p>Waveform preview, selection playback, remove or silence selection.</p></div>
         </article>
 
         <article class="screenshot-card">
-          <img data-shot="ResizeImage.jpg" src="./screenshots/ResizeImage.jpg" alt="Resize image tool" />
-          <div><h3>Resize image</h3><p>Pixel and percentage resize with automatic ratio handling.</p></div>
+          <img data-shot="ResizeVideo.jpg" src="./screenshots/ResizeVideo.jpg" alt="Resize video tool" />
+          <div><h3>Resize video</h3><p>Preset sizes, custom dimensions and ratio-aware resizing.</p></div>
         </article>
 
         <article class="screenshot-card">
@@ -138,13 +203,48 @@
         </article>
 
         <article class="screenshot-card">
-          <img data-shot="RotateFlipImage.jpg" src="./screenshots/RotateFlipImage.jpg" alt="Rotate and flip image tool" />
-          <div><h3>Rotate / flip image</h3><p>Visual preview with direct transform buttons.</p></div>
+          <img data-shot="RotateFlipVideo.jpg" src="./screenshots/RotateFlipVideo.jpg" alt="Rotate and flip video tool" />
+          <div><h3>Rotate / flip video</h3><p>Visual preview with direct transform buttons.</p></div>
         </article>
 
         <article class="screenshot-card">
+          <img data-shot="CropImage.jpg" src="./screenshots/CropImage.jpg" alt="Crop image tool" />
+          <div><h3>Crop image</h3><p>Visual crop area, size readout and ratio presets.</p></div>
+        </article>
+
+        <article class="screenshot-card">
+          <img data-shot="ResizeImage.jpg" src="./screenshots/ResizeImage.jpg" alt="Resize image tool" />
+          <div><h3>Resize image</h3><p>Pixel and percentage resize with automatic ratio handling.</p></div>
+        </article>
+
+        <article class="screenshot-card">
+          <img data-shot="CompressVideo.jpg" src="./screenshots/CompressVideo.jpg" alt="Compress video tool" />
+          <div><h3>Compress video</h3><p>Simple quality choices for smaller exports.</p></div>
+        </article>
+
+        <article class="screenshot-card">
+          <img data-shot="ConvertToIcon.jpg" src="./screenshots/ConvertToIcon.jpg" alt="Convert image to icon tool" />
+          <div><h3>Create icon</h3><p>Generate Windows icon files from standard images.</p></div>
+        </article>
+
+        <article class="screenshot-card compact">
           <img data-shot="ConvertVideo.jpg" src="./screenshots/ConvertVideo.jpg" alt="Convert video format picker" />
-          <div><h3>Format pickers</h3><p>Compact direct-click dialogs for conversion actions.</p></div>
+          <div><h3>Convert video</h3><p>Direct-click output format picker.</p></div>
+        </article>
+
+        <article class="screenshot-card compact">
+          <img data-shot="ConvertAudio.jpg" src="./screenshots/ConvertAudio.jpg" alt="Convert audio format picker" />
+          <div><h3>Convert audio</h3><p>Fast format selection for common audio types.</p></div>
+        </article>
+
+        <article class="screenshot-card compact">
+          <img data-shot="ConvertImage.jpg" src="./screenshots/ConvertImage.jpg" alt="Convert image format picker" />
+          <div><h3>Convert image</h3><p>Compact image format selection.</p></div>
+        </article>
+
+        <article class="screenshot-card compact">
+          <img data-shot="ExtractAudio.jpg" src="./screenshots/ExtractAudio.jpg" alt="Extract audio tool" />
+          <div><h3>Extract audio</h3><p>Choose an audio output format from a video.</p></div>
         </article>
       </div>
     </section>
