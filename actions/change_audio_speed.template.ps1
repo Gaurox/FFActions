@@ -5,6 +5,7 @@ param(
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System
 
 function Show-ErrorAndExit {
     param([string]$Message)
@@ -268,12 +269,12 @@ function Get-FinalAudioArguments {
         [Parameter(Mandatory = $true)][int]$SampleRate
     )
 
-    $filter = if ($KeepPitch) {
-        Build-AtempoChain -Factor $SpeedFactor
+    if ($KeepPitch) {
+        $filter = Build-AtempoChain -Factor $SpeedFactor
     }
     else {
         $rate = [Math]::Max(1000, [int][Math]::Round($SampleRate * $SpeedFactor))
-        'asetrate=' + $rate + ',aresample=' + $SampleRate
+        $filter = 'asetrate=' + $rate + ',aresample=' + $SampleRate
     }
 
     $args = @(
@@ -311,14 +312,54 @@ function Get-FinalAudioArguments {
     return ,$args
 }
 
+function Get-PreviewAudioArguments {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputFile,
+        [Parameter(Mandatory = $true)][string]$OutputFile,
+        [Parameter(Mandatory = $true)][double]$SpeedFactor,
+        [Parameter(Mandatory = $true)][bool]$KeepPitch,
+        [Parameter(Mandatory = $true)][int]$SampleRate,
+        [Parameter(Mandatory = $true)][double]$PreviewSeconds
+    )
+
+    if ($KeepPitch) {
+        $filter = Build-AtempoChain -Factor $SpeedFactor
+    }
+    else {
+        $rate = [Math]::Max(1000, [int][Math]::Round($SampleRate * $SpeedFactor))
+        $filter = 'asetrate=' + $rate + ',aresample=' + $SampleRate
+    }
+
+    $args = @(
+        '-y',
+        '-hide_banner',
+        '-loglevel', 'error',
+        '-t', $PreviewSeconds.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture),
+        '-i', $InputFile,
+        '-vn',
+        '-filter:a', $filter,
+        '-c:a', 'pcm_s16le',
+        $OutputFile
+    )
+
+    return ,$args
+}
+
 function Show-SpeedWindow {
     param(
-        [Parameter(Mandatory = $true)][double]$OriginalDurationSeconds
+        [Parameter(Mandatory = $true)][double]$OriginalDurationSeconds,
+        [Parameter(Mandatory = $true)][string]$InputFile,
+        [Parameter(Mandatory = $true)][string]$FfmpegPath,
+        [Parameter(Mandatory = $true)][int]$SampleRate
     )
 
     [System.Windows.Forms.Application]::EnableVisualStyles()
 
     $script:syncing = $false
+    $script:previewPlayer = $null
+    $script:previewFile = $null
+    $script:isPreviewPlaying = $false
+    $script:previewTimer = $null
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'FFActions - Change audio speed'
@@ -326,56 +367,81 @@ function Show-SpeedWindow {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(500, 320)
+    $form.ClientSize = New-Object System.Drawing.Size(560, 430)
     $form.TopMost = $true
+    $form.KeyPreview = $true
 
     $labelOriginal = New-Object System.Windows.Forms.Label
     $labelOriginal.Location = New-Object System.Drawing.Point(20, 18)
-    $labelOriginal.Size = New-Object System.Drawing.Size(450, 22)
+    $labelOriginal.Size = New-Object System.Drawing.Size(510, 22)
     $labelOriginal.Text = 'Original duration: ' + (Format-SecondsForDisplay -Seconds $OriginalDurationSeconds)
     $form.Controls.Add($labelOriginal)
 
-    $groupMode = New-Object System.Windows.Forms.GroupBox
-    $groupMode.Text = 'Mode'
-    $groupMode.Location = New-Object System.Drawing.Point(18, 50)
-    $groupMode.Size = New-Object System.Drawing.Size(464, 122)
-    $form.Controls.Add($groupMode)
+    $groupSpeed = New-Object System.Windows.Forms.GroupBox
+    $groupSpeed.Text = 'Speed'
+    $groupSpeed.Location = New-Object System.Drawing.Point(18, 50)
+    $groupSpeed.Size = New-Object System.Drawing.Size(524, 184)
+    $form.Controls.Add($groupSpeed)
+
+    $labelSliderLeft = New-Object System.Windows.Forms.Label
+    $labelSliderLeft.Text = '50%'
+    $labelSliderLeft.Location = New-Object System.Drawing.Point(18, 28)
+    $labelSliderLeft.Size = New-Object System.Drawing.Size(42, 20)
+    $labelSliderLeft.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+    $groupSpeed.Controls.Add($labelSliderLeft)
+
+    $trackSpeed = New-Object System.Windows.Forms.TrackBar
+    $trackSpeed.Location = New-Object System.Drawing.Point(60, 20)
+    $trackSpeed.Size = New-Object System.Drawing.Size(404, 45)
+    $trackSpeed.Minimum = 50
+    $trackSpeed.Maximum = 200
+    $trackSpeed.TickFrequency = 10
+    $trackSpeed.SmallChange = 1
+    $trackSpeed.LargeChange = 10
+    $groupSpeed.Controls.Add($trackSpeed)
+
+    $labelSliderRight = New-Object System.Windows.Forms.Label
+    $labelSliderRight.Text = '200%'
+    $labelSliderRight.Location = New-Object System.Drawing.Point(466, 28)
+    $labelSliderRight.Size = New-Object System.Drawing.Size(42, 20)
+    $labelSliderRight.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
+    $groupSpeed.Controls.Add($labelSliderRight)
 
     $radioPercent = New-Object System.Windows.Forms.RadioButton
     $radioPercent.Text = 'Speed (%)'
-    $radioPercent.Location = New-Object System.Drawing.Point(18, 28)
+    $radioPercent.Location = New-Object System.Drawing.Point(18, 74)
     $radioPercent.Size = New-Object System.Drawing.Size(110, 24)
     $radioPercent.Checked = $true
-    $groupMode.Controls.Add($radioPercent)
+    $groupSpeed.Controls.Add($radioPercent)
 
     $textPercent = New-Object System.Windows.Forms.TextBox
-    $textPercent.Location = New-Object System.Drawing.Point(150, 28)
+    $textPercent.Location = New-Object System.Drawing.Point(150, 74)
     $textPercent.Size = New-Object System.Drawing.Size(90, 23)
     $textPercent.TextAlign = [System.Windows.Forms.HorizontalAlignment]::Right
-    $groupMode.Controls.Add($textPercent)
+    $groupSpeed.Controls.Add($textPercent)
 
     $labelPercent = New-Object System.Windows.Forms.Label
     $labelPercent.Text = '%'
-    $labelPercent.Location = New-Object System.Drawing.Point(248, 31)
+    $labelPercent.Location = New-Object System.Drawing.Point(248, 77)
     $labelPercent.Size = New-Object System.Drawing.Size(18, 20)
-    $groupMode.Controls.Add($labelPercent)
+    $groupSpeed.Controls.Add($labelPercent)
 
     $radioDuration = New-Object System.Windows.Forms.RadioButton
     $radioDuration.Text = 'Target duration'
-    $radioDuration.Location = New-Object System.Drawing.Point(18, 63)
+    $radioDuration.Location = New-Object System.Drawing.Point(18, 109)
     $radioDuration.Size = New-Object System.Drawing.Size(120, 24)
-    $groupMode.Controls.Add($radioDuration)
+    $groupSpeed.Controls.Add($radioDuration)
 
     $textDuration = New-Object System.Windows.Forms.TextBox
-    $textDuration.Location = New-Object System.Drawing.Point(150, 63)
+    $textDuration.Location = New-Object System.Drawing.Point(150, 109)
     $textDuration.Size = New-Object System.Drawing.Size(130, 23)
-    $groupMode.Controls.Add($textDuration)
+    $groupSpeed.Controls.Add($textDuration)
 
     $labelDurationHint = New-Object System.Windows.Forms.Label
     $labelDurationHint.Text = 'sec or hh:mm:ss'
-    $labelDurationHint.Location = New-Object System.Drawing.Point(288, 66)
+    $labelDurationHint.Location = New-Object System.Drawing.Point(288, 112)
     $labelDurationHint.Size = New-Object System.Drawing.Size(140, 20)
-    $groupMode.Controls.Add($labelDurationHint)
+    $groupSpeed.Controls.Add($labelDurationHint)
 
     $presetValues = @(50, 75, 100, 125, 150, 200)
     $presetWidth = 62
@@ -386,19 +452,19 @@ function Show-SpeedWindow {
         $button.Text = "$value%"
         $button.Tag = $value
         $button.Size = New-Object System.Drawing.Size($presetWidth, 26)
-        $button.Location = New-Object System.Drawing.Point(($presetStartX + ($i * 72)), 92)
+        $button.Location = New-Object System.Drawing.Point(($presetStartX + ($i * 72)), 146)
         $button.Add_Click({
             param($sender, $eventArgs)
             $radioPercent.Checked = $true
             $textPercent.Text = [string]$sender.Tag
         })
-        $groupMode.Controls.Add($button)
+        $groupSpeed.Controls.Add($button)
     }
 
     $groupPitch = New-Object System.Windows.Forms.GroupBox
     $groupPitch.Text = 'Pitch'
-    $groupPitch.Location = New-Object System.Drawing.Point(18, 182)
-    $groupPitch.Size = New-Object System.Drawing.Size(464, 55)
+    $groupPitch.Location = New-Object System.Drawing.Point(18, 246)
+    $groupPitch.Size = New-Object System.Drawing.Size(524, 55)
     $form.Controls.Add($groupPitch)
 
     $checkKeepPitch = New-Object System.Windows.Forms.CheckBox
@@ -409,20 +475,31 @@ function Show-SpeedWindow {
     $groupPitch.Controls.Add($checkKeepPitch)
 
     $labelResult = New-Object System.Windows.Forms.Label
-    $labelResult.Location = New-Object System.Drawing.Point(20, 248)
-    $labelResult.Size = New-Object System.Drawing.Size(450, 20)
+    $labelResult.Location = New-Object System.Drawing.Point(20, 312)
+    $labelResult.Size = New-Object System.Drawing.Size(520, 20)
     $form.Controls.Add($labelResult)
+
+    $buttonPreview = New-Object System.Windows.Forms.Button
+    $buttonPreview.Text = 'Preview 5s'
+    $buttonPreview.Location = New-Object System.Drawing.Point(20, 366)
+    $buttonPreview.Size = New-Object System.Drawing.Size(104, 28)
+    $form.Controls.Add($buttonPreview)
+
+    $labelPreview = New-Object System.Windows.Forms.Label
+    $labelPreview.Location = New-Object System.Drawing.Point(136, 370)
+    $labelPreview.Size = New-Object System.Drawing.Size(160, 20)
+    $form.Controls.Add($labelPreview)
 
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(286, 278)
+    $buttonOK.Location = New-Object System.Drawing.Point(346, 366)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(388, 278)
+    $buttonCancel.Location = New-Object System.Drawing.Point(448, 366)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)
@@ -433,6 +510,105 @@ function Show-SpeedWindow {
     function Update-UiState {
         $textPercent.Enabled = $radioPercent.Checked
         $textDuration.Enabled = $radioDuration.Checked
+    }
+
+    function Stop-Preview {
+        try {
+            if ($script:previewTimer) {
+                $script:previewTimer.Stop()
+                $script:previewTimer.Dispose()
+                $script:previewTimer = $null
+            }
+        }
+        catch {}
+
+        try {
+            if ($script:previewPlayer) {
+                $script:previewPlayer.Stop()
+                $script:previewPlayer.Dispose()
+                $script:previewPlayer = $null
+            }
+        }
+        catch {}
+
+        Remove-FileIfExists -Path $script:previewFile
+        $script:previewFile = $null
+        $script:isPreviewPlaying = $false
+        $buttonPreview.Text = 'Preview 5s'
+        $labelPreview.Text = ''
+    }
+
+    function Try-GetCurrentSpeedConfig {
+        $percentText = $textPercent.Text.Trim().Replace(',', '.')
+        $percent = 0.0
+        if (-not [double]::TryParse($percentText, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$percent)) {
+            throw 'Enter a valid speed percentage before previewing.'
+        }
+
+        if ($percent -lt 25.0 -or $percent -gt 800.0) {
+            throw 'Speed must stay between 25% and 800%.'
+        }
+
+        return [PSCustomObject]@{
+            SpeedFactor = $percent / 100.0
+            KeepPitch   = [bool]$checkKeepPitch.Checked
+        }
+    }
+
+    function Start-Preview {
+        Stop-Preview
+
+        try {
+            $config = Try-GetCurrentSpeedConfig
+            $previewSeconds = [Math]::Min(5.0, [Math]::Max(0.5, $OriginalDurationSeconds))
+            $previewPath = Join-Path ([System.IO.Path]::GetTempPath()) ('ffactions_speed_preview_{0}.wav' -f ([System.Guid]::NewGuid().ToString('N')))
+            $args = Get-PreviewAudioArguments -InputFile $InputFile -OutputFile $previewPath -SpeedFactor $config.SpeedFactor -KeepPitch $config.KeepPitch -SampleRate $SampleRate -PreviewSeconds $previewSeconds
+
+            $buttonPreview.Enabled = $false
+            $labelPreview.Text = 'Preparing preview...'
+            [System.Windows.Forms.Application]::DoEvents()
+
+            $result = Invoke-HiddenProcess -FilePath $FfmpegPath -Arguments $args
+            if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $previewPath)) {
+                Remove-FileIfExists -Path $previewPath
+                throw (Get-ShortErrorText -StdErr $result.StdErr)
+            }
+
+            $script:previewFile = $previewPath
+            $script:previewPlayer = New-Object System.Media.SoundPlayer($previewPath)
+            $script:previewPlayer.Play()
+            $script:isPreviewPlaying = $true
+            $buttonPreview.Text = 'Stop preview'
+            $labelPreview.Text = 'Playing preview'
+
+            $script:previewTimer = New-Object System.Windows.Forms.Timer
+            $script:previewTimer.Interval = [Math]::Max(750, [int][Math]::Ceiling($previewSeconds * 1000.0))
+            $script:previewTimer.Add_Tick({
+                Stop-Preview
+            })
+            $script:previewTimer.Start()
+        }
+        catch {
+            Stop-Preview
+            $labelPreview.Text = ''
+            [System.Windows.Forms.MessageBox]::Show(
+                $_.Exception.Message,
+                'FFActions - Preview error',
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Error
+            ) | Out-Null
+        }
+        finally {
+            $buttonPreview.Enabled = $true
+        }
+    }
+
+    function Sync-SliderFromPercent {
+        param([double]$Percent)
+        $sliderValue = [int][Math]::Round([Math]::Max($trackSpeed.Minimum, [Math]::Min($trackSpeed.Maximum, $Percent)))
+        if ($trackSpeed.Value -ne $sliderValue) {
+            $trackSpeed.Value = $sliderValue
+        }
     }
 
     function Update-ResultLabel {
@@ -453,6 +629,7 @@ function Show-SpeedWindow {
 
                 $script:syncing = $true
                 $textDuration.Text = Format-SecondsForDisplay -Seconds $targetDuration
+                Sync-SliderFromPercent -Percent $percent
                 $script:syncing = $false
             }
             else {
@@ -464,7 +641,9 @@ function Show-SpeedWindow {
                 $speedFactor = $OriginalDurationSeconds / $targetDuration
 
                 $script:syncing = $true
-                $textPercent.Text = Format-PercentValue ($speedFactor * 100.0)
+                $percent = $speedFactor * 100.0
+                $textPercent.Text = Format-PercentValue $percent
+                Sync-SliderFromPercent -Percent $percent
                 $script:syncing = $false
             }
 
@@ -492,15 +671,56 @@ function Show-SpeedWindow {
 
     $textPercent.Add_TextChanged({
         if (-not $radioPercent.Checked) { return }
+        if ($script:isPreviewPlaying) { Stop-Preview }
         Update-ResultLabel
     })
 
     $textDuration.Add_TextChanged({
         if (-not $radioDuration.Checked) { return }
+        if ($script:isPreviewPlaying) { Stop-Preview }
         Update-ResultLabel
     })
 
+    $trackSpeed.Add_ValueChanged({
+        if ($script:syncing) { return }
+        if ($script:isPreviewPlaying) { Stop-Preview }
+        $radioPercent.Checked = $true
+        $script:syncing = $true
+        $textPercent.Text = Format-PercentValue $trackSpeed.Value
+        $script:syncing = $false
+        Update-ResultLabel
+    })
+
+    $checkKeepPitch.Add_CheckedChanged({
+        if ($script:isPreviewPlaying) { Stop-Preview }
+    })
+
+    $buttonPreview.Add_Click({
+        if ($script:isPreviewPlaying) {
+            Stop-Preview
+        }
+        else {
+            Start-Preview
+        }
+    })
+
+    $form.Add_KeyDown({
+        param($sender, $eventArgs)
+        if ($eventArgs.KeyCode -eq [System.Windows.Forms.Keys]::Escape) {
+            if ($script:isPreviewPlaying) {
+                Stop-Preview
+                $eventArgs.Handled = $true
+            }
+        }
+    })
+
+    $form.Add_FormClosing({
+        Stop-Preview
+    })
+
     $textPercent.Text = '100'
+    $textDuration.Text = Format-SecondsForDisplay -Seconds $OriginalDurationSeconds
+    $trackSpeed.Value = 100
     Update-UiState
     Update-ResultLabel
 
@@ -569,7 +789,7 @@ try {
     }
 
     $audioInfo = Get-AudioInfo -FfprobePath $ffprobePath -FilePath $InputFile
-    $speedConfig = Show-SpeedWindow -OriginalDurationSeconds $audioInfo.DurationSeconds
+    $speedConfig = Show-SpeedWindow -OriginalDurationSeconds $audioInfo.DurationSeconds -InputFile $InputFile -FfmpegPath $ffmpegPath -SampleRate $audioInfo.SampleRate
     if ($null -eq $speedConfig) {
         exit 0
     }

@@ -5,6 +5,7 @@
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System
 
 function Show-ErrorAndExit {
     param([string]$Message)
@@ -272,14 +273,64 @@ function Get-FinalAudioArguments {
     return ,$args
 }
 
+function Get-PreviewAudioArguments {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputFile,
+        [Parameter(Mandatory = $true)][string]$OutputFile,
+        [Parameter(Mandatory = $true)][double]$PitchFactor,
+        [Parameter(Mandatory = $true)][bool]$KeepDuration,
+        [Parameter(Mandatory = $true)][int]$SampleRate,
+        [Parameter(Mandatory = $true)][double]$PreviewSeconds
+    )
+
+    $args = @(
+        '-y',
+        '-hide_banner',
+        '-loglevel', 'error',
+        '-t', $PreviewSeconds.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture),
+        '-i', $InputFile,
+        '-vn'
+    )
+
+    if ($KeepDuration) {
+        $pitchFilter = 'rubberband=pitch=' + $PitchFactor.ToString('0.######', [System.Globalization.CultureInfo]::InvariantCulture)
+        $args += @(
+            '-af',
+            $pitchFilter
+        )
+    }
+    else {
+        $rate = [Math]::Max(1000, [int][Math]::Round($SampleRate * $PitchFactor))
+        $varispeedFilter = 'asetrate=' + $rate + ',aresample=' + $SampleRate
+        $args += @(
+            '-filter:a',
+            $varispeedFilter
+        )
+    }
+
+    $args += @(
+        '-c:a', 'pcm_s16le',
+        $OutputFile
+    )
+
+    return ,$args
+}
+
 function Show-PitchWindow {
     param(
-        [Parameter(Mandatory = $true)][double]$OriginalDurationSeconds
+        [Parameter(Mandatory = $true)][double]$OriginalDurationSeconds,
+        [Parameter(Mandatory = $true)][string]$InputFile,
+        [Parameter(Mandatory = $true)][string]$FfmpegPath,
+        [Parameter(Mandatory = $true)][int]$SampleRate
     )
 
     [System.Windows.Forms.Application]::EnableVisualStyles()
 
     $script:syncing = $false
+    $script:previewPlayer = $null
+    $script:previewFile = $null
+    $script:isPreviewPlaying = $false
+    $script:previewTimer = $null
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'FFActions - Change pitch'
@@ -287,60 +338,85 @@ function Show-PitchWindow {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(520, 330)
+    $form.ClientSize = New-Object System.Drawing.Size(560, 412)
     $form.TopMost = $true
+    $form.KeyPreview = $true
 
     $labelOriginal = New-Object System.Windows.Forms.Label
     $labelOriginal.Location = New-Object System.Drawing.Point(20, 18)
-    $labelOriginal.Size = New-Object System.Drawing.Size(460, 22)
+    $labelOriginal.Size = New-Object System.Drawing.Size(510, 22)
     $labelOriginal.Text = 'Original duration: ' + (Format-SecondsForDisplay -Seconds $OriginalDurationSeconds)
     $form.Controls.Add($labelOriginal)
 
     $groupAmount = New-Object System.Windows.Forms.GroupBox
     $groupAmount.Text = 'Pitch amount'
     $groupAmount.Location = New-Object System.Drawing.Point(18, 50)
-    $groupAmount.Size = New-Object System.Drawing.Size(484, 132)
+    $groupAmount.Size = New-Object System.Drawing.Size(524, 190)
     $form.Controls.Add($groupAmount)
+
+    $labelSliderLeft = New-Object System.Windows.Forms.Label
+    $labelSliderLeft.Text = '-12'
+    $labelSliderLeft.Location = New-Object System.Drawing.Point(18, 28)
+    $labelSliderLeft.Size = New-Object System.Drawing.Size(34, 20)
+    $labelSliderLeft.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+    $groupAmount.Controls.Add($labelSliderLeft)
+
+    $trackPitch = New-Object System.Windows.Forms.TrackBar
+    $trackPitch.Location = New-Object System.Drawing.Point(52, 20)
+    $trackPitch.Size = New-Object System.Drawing.Size(420, 45)
+    $trackPitch.Minimum = -120
+    $trackPitch.Maximum = 120
+    $trackPitch.TickFrequency = 10
+    $trackPitch.SmallChange = 1
+    $trackPitch.LargeChange = 10
+    $groupAmount.Controls.Add($trackPitch)
+
+    $labelSliderRight = New-Object System.Windows.Forms.Label
+    $labelSliderRight.Text = '+12'
+    $labelSliderRight.Location = New-Object System.Drawing.Point(476, 28)
+    $labelSliderRight.Size = New-Object System.Drawing.Size(34, 20)
+    $labelSliderRight.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
+    $groupAmount.Controls.Add($labelSliderRight)
 
     $labelSemitones = New-Object System.Windows.Forms.Label
     $labelSemitones.Text = 'Semitones'
-    $labelSemitones.Location = New-Object System.Drawing.Point(18, 30)
+    $labelSemitones.Location = New-Object System.Drawing.Point(18, 76)
     $labelSemitones.Size = New-Object System.Drawing.Size(90, 20)
     $groupAmount.Controls.Add($labelSemitones)
 
     $textSemitones = New-Object System.Windows.Forms.TextBox
-    $textSemitones.Location = New-Object System.Drawing.Point(130, 27)
+    $textSemitones.Location = New-Object System.Drawing.Point(130, 73)
     $textSemitones.Size = New-Object System.Drawing.Size(90, 23)
     $textSemitones.TextAlign = [System.Windows.Forms.HorizontalAlignment]::Right
     $groupAmount.Controls.Add($textSemitones)
 
     $labelSemitonesHint = New-Object System.Windows.Forms.Label
-    $labelSemitonesHint.Text = 'ex: -12, -3, 0, +3, +12'
-    $labelSemitonesHint.Location = New-Object System.Drawing.Point(235, 30)
-    $labelSemitonesHint.Size = New-Object System.Drawing.Size(180, 20)
+    $labelSemitonesHint.Text = 'Drag the slider or enter a precise value'
+    $labelSemitonesHint.Location = New-Object System.Drawing.Point(235, 76)
+    $labelSemitonesHint.Size = New-Object System.Drawing.Size(250, 20)
     $groupAmount.Controls.Add($labelSemitonesHint)
 
     $labelPercent = New-Object System.Windows.Forms.Label
     $labelPercent.Text = 'Pitch (%)'
-    $labelPercent.Location = New-Object System.Drawing.Point(18, 63)
+    $labelPercent.Location = New-Object System.Drawing.Point(18, 109)
     $labelPercent.Size = New-Object System.Drawing.Size(90, 20)
     $groupAmount.Controls.Add($labelPercent)
 
     $textPercent = New-Object System.Windows.Forms.TextBox
-    $textPercent.Location = New-Object System.Drawing.Point(130, 60)
+    $textPercent.Location = New-Object System.Drawing.Point(130, 106)
     $textPercent.Size = New-Object System.Drawing.Size(90, 23)
     $textPercent.TextAlign = [System.Windows.Forms.HorizontalAlignment]::Right
     $groupAmount.Controls.Add($textPercent)
 
     $labelPercentUnit = New-Object System.Windows.Forms.Label
     $labelPercentUnit.Text = '%'
-    $labelPercentUnit.Location = New-Object System.Drawing.Point(228, 63)
+    $labelPercentUnit.Location = New-Object System.Drawing.Point(228, 109)
     $labelPercentUnit.Size = New-Object System.Drawing.Size(18, 20)
     $groupAmount.Controls.Add($labelPercentUnit)
 
     $labelPercentHint = New-Object System.Windows.Forms.Label
     $labelPercentHint.Text = '100 = unchanged'
-    $labelPercentHint.Location = New-Object System.Drawing.Point(252, 63)
+    $labelPercentHint.Location = New-Object System.Drawing.Point(252, 109)
     $labelPercentHint.Size = New-Object System.Drawing.Size(150, 20)
     $groupAmount.Controls.Add($labelPercentHint)
 
@@ -359,7 +435,7 @@ function Show-PitchWindow {
         }
         $button.Tag = $value
         $button.Size = New-Object System.Drawing.Size($presetWidth, 26)
-        $button.Location = New-Object System.Drawing.Point(($presetStartX + ($i * ($presetWidth + $presetGap))), 94)
+        $button.Location = New-Object System.Drawing.Point(($presetStartX + ($i * ($presetWidth + $presetGap))), 148)
         $button.Add_Click({
             param($sender, $eventArgs)
             $textSemitones.Text = [string]$sender.Tag
@@ -369,8 +445,8 @@ function Show-PitchWindow {
 
     $groupOptions = New-Object System.Windows.Forms.GroupBox
     $groupOptions.Text = 'Options'
-    $groupOptions.Location = New-Object System.Drawing.Point(18, 192)
-    $groupOptions.Size = New-Object System.Drawing.Size(484, 60)
+    $groupOptions.Location = New-Object System.Drawing.Point(18, 250)
+    $groupOptions.Size = New-Object System.Drawing.Size(524, 60)
     $form.Controls.Add($groupOptions)
 
     $checkKeepDuration = New-Object System.Windows.Forms.CheckBox
@@ -381,20 +457,31 @@ function Show-PitchWindow {
     $groupOptions.Controls.Add($checkKeepDuration)
 
     $labelResult = New-Object System.Windows.Forms.Label
-    $labelResult.Location = New-Object System.Drawing.Point(20, 262)
-    $labelResult.Size = New-Object System.Drawing.Size(470, 20)
+    $labelResult.Location = New-Object System.Drawing.Point(20, 320)
+    $labelResult.Size = New-Object System.Drawing.Size(520, 20)
     $form.Controls.Add($labelResult)
+
+    $buttonPreview = New-Object System.Windows.Forms.Button
+    $buttonPreview.Text = 'Preview 5s'
+    $buttonPreview.Location = New-Object System.Drawing.Point(20, 354)
+    $buttonPreview.Size = New-Object System.Drawing.Size(104, 28)
+    $form.Controls.Add($buttonPreview)
+
+    $labelPreview = New-Object System.Windows.Forms.Label
+    $labelPreview.Location = New-Object System.Drawing.Point(136, 358)
+    $labelPreview.Size = New-Object System.Drawing.Size(160, 20)
+    $form.Controls.Add($labelPreview)
 
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(306, 292)
+    $buttonOK.Location = New-Object System.Drawing.Point(346, 354)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(408, 292)
+    $buttonCancel.Location = New-Object System.Drawing.Point(448, 354)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)
@@ -415,6 +502,98 @@ function Show-PitchWindow {
         return 12.0 * ([Math]::Log(($Percent / 100.0), 2.0))
     }
 
+    function Stop-Preview {
+        try {
+            if ($script:previewTimer) {
+                $script:previewTimer.Stop()
+                $script:previewTimer.Dispose()
+                $script:previewTimer = $null
+            }
+        }
+        catch {}
+
+        try {
+            if ($script:previewPlayer) {
+                $script:previewPlayer.Stop()
+                $script:previewPlayer.Dispose()
+                $script:previewPlayer = $null
+            }
+        }
+        catch {}
+
+        Remove-FileIfExists -Path $script:previewFile
+        $script:previewFile = $null
+        $script:isPreviewPlaying = $false
+        $buttonPreview.Text = 'Preview 5s'
+        $labelPreview.Text = ''
+    }
+
+    function Try-GetCurrentPitchConfig {
+        $semiText = $textSemitones.Text.Trim().Replace(',', '.')
+        $semi = 0.0
+        if (-not [double]::TryParse($semiText, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$semi)) {
+            throw 'Enter a valid semitone value before previewing.'
+        }
+
+        if ($semi -lt -24.0 -or $semi -gt 24.0) {
+            throw 'Pitch must stay between -24 and +24 semitones.'
+        }
+
+        return [PSCustomObject]@{
+            Semitones    = $semi
+            PitchFactor  = [Math]::Pow(2.0, ($semi / 12.0))
+            KeepDuration = [bool]$checkKeepDuration.Checked
+        }
+    }
+
+    function Start-Preview {
+        Stop-Preview
+
+        try {
+            $config = Try-GetCurrentPitchConfig
+            $previewSeconds = [Math]::Min(5.0, [Math]::Max(0.5, $OriginalDurationSeconds))
+            $previewPath = Join-Path ([System.IO.Path]::GetTempPath()) ('ffactions_pitch_preview_{0}.wav' -f ([System.Guid]::NewGuid().ToString('N')))
+            $args = Get-PreviewAudioArguments -InputFile $InputFile -OutputFile $previewPath -PitchFactor $config.PitchFactor -KeepDuration $config.KeepDuration -SampleRate $SampleRate -PreviewSeconds $previewSeconds
+
+            $buttonPreview.Enabled = $false
+            $labelPreview.Text = 'Preparing preview...'
+            [System.Windows.Forms.Application]::DoEvents()
+
+            $result = Invoke-HiddenProcess -FilePath $FfmpegPath -Arguments $args
+            if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $previewPath)) {
+                Remove-FileIfExists -Path $previewPath
+                throw (Get-ShortErrorText -StdErr $result.StdErr)
+            }
+
+            $script:previewFile = $previewPath
+            $script:previewPlayer = New-Object System.Media.SoundPlayer($previewPath)
+            $script:previewPlayer.Play()
+            $script:isPreviewPlaying = $true
+            $buttonPreview.Text = 'Stop preview'
+            $labelPreview.Text = 'Playing preview'
+
+            $script:previewTimer = New-Object System.Windows.Forms.Timer
+            $script:previewTimer.Interval = [Math]::Max(750, [int][Math]::Ceiling($previewSeconds * 1000.0))
+            $script:previewTimer.Add_Tick({
+                Stop-Preview
+            })
+            $script:previewTimer.Start()
+        }
+        catch {
+            Stop-Preview
+            $labelPreview.Text = ''
+            [System.Windows.Forms.MessageBox]::Show(
+                $_.Exception.Message,
+                'FFActions - Preview error',
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Error
+            ) | Out-Null
+        }
+        finally {
+            $buttonPreview.Enabled = $true
+        }
+    }
+
     function Update-ResultLabel {
         if ($script:syncing) { return }
         try {
@@ -428,6 +607,10 @@ function Show-PitchWindow {
             $percent = Convert-SemitonesToPercent -Semitones $semi
             $script:syncing = $true
             $textPercent.Text = Format-DecimalValue -Value $percent
+            $sliderValue = [int][Math]::Round([Math]::Max($trackPitch.Minimum, [Math]::Min($trackPitch.Maximum, ($semi * 10.0))))
+            if ($trackPitch.Value -ne $sliderValue) {
+                $trackPitch.Value = $sliderValue
+            }
             $script:syncing = $false
 
             if ($checkKeepDuration.Checked) {
@@ -445,11 +628,13 @@ function Show-PitchWindow {
 
     $textSemitones.Add_TextChanged({
         if ($script:syncing) { return }
+        if ($script:isPreviewPlaying) { Stop-Preview }
         Update-ResultLabel
     })
 
     $textPercent.Add_TextChanged({
         if ($script:syncing) { return }
+        if ($script:isPreviewPlaying) { Stop-Preview }
         try {
             $percentText = $textPercent.Text.Trim().Replace(',', '.')
             $percent = 0.0
@@ -461,6 +646,10 @@ function Show-PitchWindow {
             $semi = Convert-PercentToSemitones -Percent $percent
             $script:syncing = $true
             $textSemitones.Text = Format-DecimalValue -Value $semi
+            $sliderValue = [int][Math]::Round([Math]::Max($trackPitch.Minimum, [Math]::Min($trackPitch.Maximum, ($semi * 10.0))))
+            if ($trackPitch.Value -ne $sliderValue) {
+                $trackPitch.Value = $sliderValue
+            }
             $script:syncing = $false
             Update-ResultLabel
         }
@@ -470,7 +659,40 @@ function Show-PitchWindow {
     })
 
     $checkKeepDuration.Add_CheckedChanged({
+        if ($script:isPreviewPlaying) { Stop-Preview }
         Update-ResultLabel
+    })
+
+    $trackPitch.Add_ValueChanged({
+        if ($script:syncing) { return }
+        if ($script:isPreviewPlaying) { Stop-Preview }
+        $script:syncing = $true
+        $textSemitones.Text = Format-DecimalValue -Value ($trackPitch.Value / 10.0)
+        $script:syncing = $false
+        Update-ResultLabel
+    })
+
+    $buttonPreview.Add_Click({
+        if ($script:isPreviewPlaying) {
+            Stop-Preview
+        }
+        else {
+            Start-Preview
+        }
+    })
+
+    $form.Add_KeyDown({
+        param($sender, $eventArgs)
+        if ($eventArgs.KeyCode -eq [System.Windows.Forms.Keys]::Escape) {
+            if ($script:isPreviewPlaying) {
+                Stop-Preview
+                $eventArgs.Handled = $true
+            }
+        }
+    })
+
+    $form.Add_FormClosing({
+        Stop-Preview
     })
 
     $textSemitones.Text = '0'
@@ -546,7 +768,7 @@ try {
     $audioInfo = Get-AudioInfo -FfprobePath $ffprobePath -FilePath $InputFile
     Write-DebugLog ('DurationSeconds=' + $audioInfo.DurationSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture))
     Write-DebugLog ('SampleRate=' + $audioInfo.SampleRate)
-    $pitchConfig = Show-PitchWindow -OriginalDurationSeconds $audioInfo.DurationSeconds
+    $pitchConfig = Show-PitchWindow -OriginalDurationSeconds $audioInfo.DurationSeconds -InputFile $InputFile -FfmpegPath $ffmpegPath -SampleRate $audioInfo.SampleRate
     if ($null -eq $pitchConfig) {
         Write-DebugLog 'Dialog cancelled'
         exit 0

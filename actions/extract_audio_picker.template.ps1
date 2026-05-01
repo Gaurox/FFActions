@@ -35,7 +35,7 @@ function Show-FormatPicker {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(360, 132)
+    $form.ClientSize = New-Object System.Drawing.Size(360, 144)
 
     $label = New-Object System.Windows.Forms.Label
     $label.Location = New-Object System.Drawing.Point(16, 16)
@@ -70,7 +70,7 @@ function Show-FormatPicker {
     }
 
     $cancelButton = New-Object System.Windows.Forms.Button
-    $cancelButton.Location = New-Object System.Drawing.Point(269, 92)
+    $cancelButton.Location = New-Object System.Drawing.Point(269, 104)
     $cancelButton.Size = New-Object System.Drawing.Size(75, 28)
     $cancelButton.Text = 'Cancel'
     $cancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel

@@ -121,8 +121,133 @@ function Get-ShortErrorText {
     return 'FFmpeg failed during icon conversion.'
 }
 
+function Get-PreviewBackgroundBrush {
+    param([string]$Background)
+
+    switch ($Background) {
+        'white' { return [System.Drawing.Brushes]::White }
+        'black' { return [System.Drawing.Brushes]::Black }
+        default { return $null }
+    }
+}
+
+function New-PreviewBitmap {
+    param(
+        [Parameter(Mandatory = $true)][System.Drawing.Image]$SourceImage,
+        [Parameter(Mandatory = $true)][int]$IconSize,
+        [Parameter(Mandatory = $true)][string]$FitMode,
+        [Parameter(Mandatory = $true)][string]$Background,
+        [Parameter(Mandatory = $true)][bool]$Enabled
+    )
+
+    $canvasSize = 74
+    $bitmap = New-Object System.Drawing.Bitmap($canvasSize, $canvasSize, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+    $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $graphics.Clear([System.Drawing.Color]::Transparent)
+
+    $cellBrushLight = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(242, 242, 242))
+    $cellBrushDark = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(218, 218, 218))
+    for ($y = 0; $y -lt $canvasSize; $y += 8) {
+        for ($x = 0; $x -lt $canvasSize; $x += 8) {
+            $brush = if ((($x + $y) / 8) % 2 -eq 0) { $cellBrushLight } else { $cellBrushDark }
+            $graphics.FillRectangle($brush, $x, $y, 8, 8)
+        }
+    }
+    $cellBrushLight.Dispose()
+    $cellBrushDark.Dispose()
+
+    $previewSize = [Math]::Min($IconSize, 64)
+    $previewRect = New-Object System.Drawing.Rectangle(
+        [int][Math]::Floor(($canvasSize - $previewSize) / 2),
+        [int][Math]::Floor(($canvasSize - $previewSize) / 2),
+        $previewSize,
+        $previewSize
+    )
+
+    $backgroundBrush = Get-PreviewBackgroundBrush -Background $Background
+    if ($backgroundBrush) {
+        $graphics.FillRectangle($backgroundBrush, $previewRect)
+    }
+
+    $sourceRatio = $SourceImage.Width / [double]$SourceImage.Height
+    $targetRatio = 1.0
+    if ($FitMode -eq 'fill') {
+        if ($sourceRatio -gt $targetRatio) {
+            $cropHeight = $SourceImage.Height
+            $cropWidth = [int][Math]::Round($cropHeight * $targetRatio)
+            $cropX = [int][Math]::Floor(($SourceImage.Width - $cropWidth) / 2)
+            $sourceRect = New-Object System.Drawing.Rectangle($cropX, 0, $cropWidth, $cropHeight)
+        }
+        else {
+            $cropWidth = $SourceImage.Width
+            $cropHeight = [int][Math]::Round($cropWidth / $targetRatio)
+            $cropY = [int][Math]::Floor(($SourceImage.Height - $cropHeight) / 2)
+            $sourceRect = New-Object System.Drawing.Rectangle(0, $cropY, $cropWidth, $cropHeight)
+        }
+        $destinationRect = $previewRect
+    }
+    else {
+        if ($sourceRatio -gt $targetRatio) {
+            $drawWidth = $previewSize
+            $drawHeight = [int][Math]::Round($previewSize / $sourceRatio)
+        }
+        else {
+            $drawHeight = $previewSize
+            $drawWidth = [int][Math]::Round($previewSize * $sourceRatio)
+        }
+        $destinationRect = New-Object System.Drawing.Rectangle(
+            [int]($previewRect.X + (($previewRect.Width - $drawWidth) / 2)),
+            [int]($previewRect.Y + (($previewRect.Height - $drawHeight) / 2)),
+            $drawWidth,
+            $drawHeight
+        )
+        $sourceRect = New-Object System.Drawing.Rectangle(0, 0, $SourceImage.Width, $SourceImage.Height)
+    }
+
+    if ($Enabled) {
+        $graphics.DrawImage($SourceImage, $destinationRect, $sourceRect, [System.Drawing.GraphicsUnit]::Pixel)
+    }
+    else {
+        $attributes = New-Object System.Drawing.Imaging.ImageAttributes
+        $matrix = New-Object System.Drawing.Imaging.ColorMatrix
+        $matrix.Matrix00 = 0.30
+        $matrix.Matrix01 = 0.30
+        $matrix.Matrix02 = 0.30
+        $matrix.Matrix10 = 0.59
+        $matrix.Matrix11 = 0.59
+        $matrix.Matrix12 = 0.59
+        $matrix.Matrix20 = 0.11
+        $matrix.Matrix21 = 0.11
+        $matrix.Matrix22 = 0.11
+        $matrix.Matrix33 = 0.35
+        $matrix.Matrix44 = 1.0
+        $attributes.SetColorMatrix($matrix)
+        $graphics.DrawImage($SourceImage, $destinationRect, $sourceRect.X, $sourceRect.Y, $sourceRect.Width, $sourceRect.Height, [System.Drawing.GraphicsUnit]::Pixel, $attributes)
+        $attributes.Dispose()
+    }
+
+    $graphics.Dispose()
+
+    return $bitmap
+}
+
 function Show-IconWindow {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputFile
+    )
+
     [System.Windows.Forms.Application]::EnableVisualStyles()
+
+    $sourceImage = $null
+    try {
+        $sourceImage = [System.Drawing.Image]::FromFile($InputFile)
+    }
+    catch {
+        $sourceImage = $null
+    }
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'FFActions - Convert to icon'
@@ -130,7 +255,7 @@ function Show-IconWindow {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(420, 370)
+    $form.ClientSize = New-Object System.Drawing.Size(760, 430)
     $form.TopMost = $true
 
     $groupSizes = New-Object System.Windows.Forms.GroupBox
@@ -139,7 +264,7 @@ function Show-IconWindow {
     $groupSizes.Size = New-Object System.Drawing.Size(180, 232)
     $form.Controls.Add($groupSizes)
 
-    $sizeValues = @(16, 24, 32, 48, 64, 128, 256)
+    $sizeValues = @(16, 32, 48, 64, 128, 256)
     $defaultSizes = @(16, 32, 48, 256)
     $sizeChecks = @()
     for ($i = 0; $i -lt $sizeValues.Count; $i++) {
@@ -198,28 +323,153 @@ function Show-IconWindow {
     $radioBlack.Size = New-Object System.Drawing.Size(140, 24)
     $groupBackground.Controls.Add($radioBlack)
 
+    $groupPreview = New-Object System.Windows.Forms.GroupBox
+    $groupPreview.Text = 'Preview'
+    $groupPreview.Location = New-Object System.Drawing.Point(420, 16)
+    $groupPreview.Size = New-Object System.Drawing.Size(322, 344)
+    $form.Controls.Add($groupPreview)
+
+    $previewTiles = @()
+    for ($i = 0; $i -lt $sizeValues.Count; $i++) {
+        $value = [int]$sizeValues[$i]
+        $tile = New-Object System.Windows.Forms.Panel
+        $tile.Tag = $value
+        $tile.Size = New-Object System.Drawing.Size(90, 126)
+        $tile.Location = New-Object System.Drawing.Point((16 + (($i % 3) * 100)), (28 + ([Math]::Floor($i / 3) * 150)))
+        $tile.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+        $tile.Add_Paint({
+            param($sender, $eventArgs)
+            $tileInfo = $previewTiles | Where-Object { $_.Panel -eq $sender } | Select-Object -First 1
+            $isChecked = $tileInfo -and [bool]$tileInfo.CheckBox.Checked
+            $pen = if ($isChecked) {
+                New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(0, 120, 215), 2)
+            }
+            else {
+                New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(150, 150, 150), 1)
+            }
+            $rectangle = New-Object System.Drawing.Rectangle(0, 0, ($sender.Width - 1), ($sender.Height - 1))
+            $eventArgs.Graphics.DrawRectangle($pen, $rectangle)
+            $pen.Dispose()
+        })
+        $groupPreview.Controls.Add($tile)
+
+        $picture = New-Object System.Windows.Forms.PictureBox
+        $picture.Location = New-Object System.Drawing.Point(7, 8)
+        $picture.Size = New-Object System.Drawing.Size(74, 74)
+        $picture.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+        $tile.Controls.Add($picture)
+
+        $label = New-Object System.Windows.Forms.Label
+        $label.Text = "$value x $value"
+        $label.Location = New-Object System.Drawing.Point(5, 88)
+        $label.Size = New-Object System.Drawing.Size(78, 18)
+        $label.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+        $tile.Controls.Add($label)
+
+        $stateLabel = New-Object System.Windows.Forms.Label
+        $stateLabel.Location = New-Object System.Drawing.Point(5, 106)
+        $stateLabel.Size = New-Object System.Drawing.Size(78, 16)
+        $stateLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+        $tile.Controls.Add($stateLabel)
+
+        $previewTiles += [PSCustomObject]@{
+            Size       = $value
+            Panel      = $tile
+            PictureBox = $picture
+            Label      = $label
+            StateLabel = $stateLabel
+            CheckBox   = $sizeChecks[$i]
+        }
+    }
+
     $labelHint = New-Object System.Windows.Forms.Label
-    $labelHint.Location = New-Object System.Drawing.Point(20, 266)
-    $labelHint.Size = New-Object System.Drawing.Size(380, 36)
+    $labelHint.Location = New-Object System.Drawing.Point(20, 274)
+    $labelHint.Size = New-Object System.Drawing.Size(380, 48)
     $labelHint.Text = 'The ICO file will be created next to the original image.'
     $form.Controls.Add($labelHint)
 
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(216, 326)
+    $buttonOK.Location = New-Object System.Drawing.Point(556, 382)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(312, 326)
+    $buttonCancel.Location = New-Object System.Drawing.Point(652, 382)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)
 
     $form.AcceptButton = $buttonOK
     $form.CancelButton = $buttonCancel
+
+    function Get-SelectedBackground {
+        if ($radioWhite.Checked) { return 'white' }
+        if ($radioBlack.Checked) { return 'black' }
+        return 'transparent'
+    }
+
+    function Update-Preview {
+        $fitMode = if ($radioFill.Checked) { 'fill' } else { 'fit' }
+        $background = Get-SelectedBackground
+
+        foreach ($tileInfo in $previewTiles) {
+            $isChecked = [bool]$tileInfo.CheckBox.Checked
+            $oldImage = $tileInfo.PictureBox.Image
+            if ($sourceImage) {
+                $tileInfo.PictureBox.Image = New-PreviewBitmap -SourceImage $sourceImage -IconSize $tileInfo.Size -FitMode $fitMode -Background $background -Enabled $isChecked
+            }
+            else {
+                $tileInfo.PictureBox.Image = $null
+            }
+            if ($oldImage) { $oldImage.Dispose() }
+
+            $tileInfo.Panel.BackColor = if ($isChecked) {
+                [System.Drawing.SystemColors]::Window
+            }
+            else {
+                [System.Drawing.Color]::FromArgb(238, 238, 238)
+            }
+            $tileInfo.Label.ForeColor = if ($isChecked) {
+                [System.Drawing.SystemColors]::ControlText
+            }
+            else {
+                [System.Drawing.SystemColors]::GrayText
+            }
+            $tileInfo.StateLabel.Text = if ($isChecked) { 'Included' } else { 'Skipped' }
+            $tileInfo.StateLabel.ForeColor = if ($isChecked) {
+                [System.Drawing.Color]::FromArgb(0, 120, 215)
+            }
+            else {
+                [System.Drawing.SystemColors]::GrayText
+            }
+            $tileInfo.Panel.Invalidate()
+        }
+    }
+
+    foreach ($check in $sizeChecks) {
+        $check.Add_CheckedChanged({ Update-Preview })
+    }
+    $radioFit.Add_CheckedChanged({ Update-Preview })
+    $radioFill.Add_CheckedChanged({ Update-Preview })
+    $radioTransparent.Add_CheckedChanged({ Update-Preview })
+    $radioWhite.Add_CheckedChanged({ Update-Preview })
+    $radioBlack.Add_CheckedChanged({ Update-Preview })
+    $form.Add_FormClosed({
+        foreach ($tileInfo in $previewTiles) {
+            if ($tileInfo.PictureBox.Image) {
+                $tileInfo.PictureBox.Image.Dispose()
+                $tileInfo.PictureBox.Image = $null
+            }
+        }
+        if ($sourceImage) {
+            $sourceImage.Dispose()
+        }
+    })
+
+    Update-Preview
 
     $result = $form.ShowDialog()
     if ($result -ne [System.Windows.Forms.DialogResult]::OK) {
@@ -234,9 +484,7 @@ function Show-IconWindow {
         exit 1
     }
 
-    $background = 'transparent'
-    if ($radioWhite.Checked) { $background = 'white' }
-    if ($radioBlack.Checked) { $background = 'black' }
+    $background = Get-SelectedBackground
 
     $payload = [PSCustomObject]@{
         Sizes      = @($selectedSizes | Sort-Object)
@@ -329,7 +577,7 @@ try {
         exit 1
     }
 
-    $iconConfig = Show-IconWindow
+    $iconConfig = Show-IconWindow -InputFile $InputFile
     if ($null -eq $iconConfig) {
         exit 0
     }

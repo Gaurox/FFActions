@@ -1,6 +1,7 @@
 [Setup]
 AppName=FFActions
-AppVersion=1.2.1
+AppId=FFActions
+AppVersion=1.2.2
 DefaultDirName={autopf}\FFActions
 DefaultGroupName=FFActions
 OutputDir=.
@@ -12,20 +13,22 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
 DisableProgramGroupPage=yes
+AlwaysShowComponentsList=yes
 SetupIconFile=tools\icons\ffactions.ico
 UninstallDisplayIcon={app}\tools\icons\ffactions.ico
+LicenseFile=LICENSE
 ShowComponentSizes=no
 ExtraDiskSpaceRequired=220000000
 
 [Languages]
-Name: "french"; MessagesFile: "compiler:Languages\French.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
-french.ComponentsDiscSpaceLabel=Selectionnez les modules a installer :
+english.ComponentsDiscSpaceLabel=Select the modules to install:
 
 [Types]
-Name: "complete"; Description: "Installation complete"
-Name: "custom"; Description: "Installation personnalisee"; Flags: iscustom
+Name: "complete"; Description: "Complete installation"
+Name: "custom"; Description: "Custom installation"; Flags: iscustom
 
 [Components]
 Name: "video"; Description: "Video"; Types: complete custom
@@ -106,7 +109,6 @@ Source: "actions\convert_icon.exe"; DestDir: "{app}\actions"; Flags: ignoreversi
 Source: "tools\ffmpeg\ffmpeg.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\convert image\compress image\flip image\crop image\icon
 Source: "tools\ffmpeg\ffprobe.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert
 Source: "tools\icons\ffactions.ico"; DestDir: "{app}\tools\icons"; DestName: "ffactions.ico"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\resize_image image\convert image\compress image\flip image\crop image\icon
-Source: "tools\repair_video_menus.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: video
 Source: "tools\repair_audio_image_convert_menus.ps1"; DestDir: "{app}\tools"; Flags: ignoreversion; Components: audio\convert image\convert
 
 [InstallDelete]
@@ -165,7 +167,6 @@ Type: files; Name: "{app}\tools\repair_video_menus.ps1"
 Type: files; Name: "{app}\tools\repair_audio_image_convert_menus.ps1"
 
 [Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\tools\repair_video_menus.ps1"" -InstallRoot ""{app}"" -AllUsers -ResetExisting"; Flags: runhidden waituntilterminated; Components: video
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\tools\repair_audio_image_convert_menus.ps1"" -InstallRoot ""{app}"" -AllUsers"; Flags: runhidden waituntilterminated; Components: audio\convert image\convert
 
 [Registry]
@@ -742,6 +743,201 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webp\shell\FFActio
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webp\shell\FFActions\shell\convert\shell\to_bmp\command"; ValueType: string; ValueName: ""; ValueData: """{app}\actions\convert_image_to_bmp.exe"" ""%1"""; Flags: uninsdeletekey; Components: image\convert
 
 [Code]
+var
+  MaintenancePage: TInputOptionWizardPage;
+  InstalledVersion: string;
+  InstalledDir: string;
+  InstalledUninstaller: string;
+  PreviousComponents: string;
+  IsInstalled: Boolean;
+  CloseAfterUninstall: Boolean;
+
+const
+  UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\FFActions_is1';
+
+function GetVersionPart(var Version: string): Integer;
+var
+  DotPos: Integer;
+  Part: string;
+begin
+  DotPos := Pos('.', Version);
+  if DotPos > 0 then
+  begin
+    Part := Copy(Version, 1, DotPos - 1);
+    Delete(Version, 1, DotPos);
+  end
+  else
+  begin
+    Part := Version;
+    Version := '';
+  end;
+
+  Result := StrToIntDef(Part, 0);
+end;
+
+function CompareVersions(VersionA, VersionB: string): Integer;
+var
+  PartA: Integer;
+  PartB: Integer;
+begin
+  Result := 0;
+
+  while (VersionA <> '') or (VersionB <> '') do
+  begin
+    PartA := GetVersionPart(VersionA);
+    PartB := GetVersionPart(VersionB);
+
+    if PartA > PartB then
+    begin
+      Result := 1;
+      Exit;
+    end;
+
+    if PartA < PartB then
+    begin
+      Result := -1;
+      Exit;
+    end;
+  end;
+end;
+
+function QueryInstalledString(const ValueName: string; var Value: string): Boolean;
+begin
+  Result :=
+    RegQueryStringValue(HKLM, UninstallKey, ValueName, Value) or
+    RegQueryStringValue(HKCU, UninstallKey, ValueName, Value);
+end;
+
+function DetectInstalledVersion(): Boolean;
+begin
+  Result := QueryInstalledString('DisplayVersion', InstalledVersion);
+
+  if Result then
+  begin
+    QueryInstalledString('InstallLocation', InstalledDir);
+    if InstalledDir = '' then
+    begin
+      QueryInstalledString('Inno Setup: App Path', InstalledDir);
+    end;
+
+    QueryInstalledString('UninstallString', InstalledUninstaller);
+  end;
+end;
+
+function AddComponentIfFileExists(
+  const Components, ComponentName, RelativeFileName: string): string;
+begin
+  Result := Components;
+  if FileExists(AddBackslash(InstalledDir) + RelativeFileName) then
+  begin
+    if Result <> '' then
+    begin
+      Result := Result + ',';
+    end;
+    Result := Result + ComponentName;
+  end;
+end;
+
+function DetectInstalledComponentsFromFiles(): string;
+begin
+  Result := '';
+
+  if InstalledDir = '' then
+  begin
+    Exit;
+  end;
+
+  Result := AddComponentIfFileExists(Result, 'video\cut_video', 'actions\cut_video.exe');
+  Result := AddComponentIfFileExists(Result, 'video\interpolate', 'actions\interpolate.exe');
+  Result := AddComponentIfFileExists(Result, 'video\remove_audio', 'actions\remove_audio.exe');
+  Result := AddComponentIfFileExists(Result, 'video\extract_audio', 'actions\extract_audio_picker.exe');
+  Result := AddComponentIfFileExists(Result, 'video\create_gif', 'actions\create_gif.exe');
+  Result := AddComponentIfFileExists(Result, 'video\resize_video', 'actions\resize_video.exe');
+  Result := AddComponentIfFileExists(Result, 'video\crop_video', 'actions\crop_video.exe');
+  Result := AddComponentIfFileExists(Result, 'video\rotate', 'actions\rotate_video.exe');
+  Result := AddComponentIfFileExists(Result, 'video\compress', 'actions\compress_video.exe');
+  Result := AddComponentIfFileExists(Result, 'video\convert', 'actions\convert_video_picker.exe');
+
+  Result := AddComponentIfFileExists(Result, 'audio\cut_audio', 'actions\cut_audio.exe');
+  Result := AddComponentIfFileExists(Result, 'audio\change_speed', 'actions\change_audio_speed.exe');
+  Result := AddComponentIfFileExists(Result, 'audio\reverse', 'actions\reverse_audio.exe');
+  Result := AddComponentIfFileExists(Result, 'audio\compress', 'actions\compress_audio.exe');
+  Result := AddComponentIfFileExists(Result, 'audio\change_pitch', 'actions\change_audio_pitch.exe');
+  Result := AddComponentIfFileExists(Result, 'audio\convert', 'actions\convert_audio_picker.exe');
+
+  Result := AddComponentIfFileExists(Result, 'image\resize_image', 'actions\resize_image.exe');
+  Result := AddComponentIfFileExists(Result, 'image\convert', 'actions\convert_image_picker.exe');
+  Result := AddComponentIfFileExists(Result, 'image\compress', 'actions\compress_image.exe');
+  Result := AddComponentIfFileExists(Result, 'image\flip', 'actions\flip_image.exe');
+  Result := AddComponentIfFileExists(Result, 'image\crop', 'actions\crop_image.exe');
+  Result := AddComponentIfFileExists(Result, 'image\icon', 'actions\convert_icon.exe');
+end;
+
+function ExtractUninstallerPath(const UninstallString: string): string;
+var
+  SpacePos: Integer;
+  Remainder: string;
+begin
+  Result := UninstallString;
+
+  if Result = '' then
+  begin
+    Exit;
+  end;
+
+  if Copy(Result, 1, 1) = '"' then
+  begin
+    Remainder := Copy(Result, 2, Length(Result) - 1);
+    SpacePos := Pos('"', Remainder);
+    if SpacePos > 0 then
+    begin
+      Result := Copy(Remainder, 1, SpacePos - 1);
+    end;
+  end
+  else
+  begin
+    SpacePos := Pos(' ', Result);
+    if SpacePos > 0 then
+    begin
+      Result := Copy(Result, 1, SpacePos - 1);
+    end;
+  end;
+end;
+
+function LaunchInstalledUninstaller(): Boolean;
+var
+  UninstallerPath: string;
+  ResultCode: Integer;
+begin
+  Result := False;
+  UninstallerPath := ExtractUninstallerPath(InstalledUninstaller);
+
+  if (UninstallerPath = '') or not FileExists(UninstallerPath) then
+  begin
+    MsgBox(
+      'The FFActions uninstaller could not be found.' + #13#10 +
+      'You can still uninstall it from Windows settings if needed.',
+      mbError,
+      MB_OK);
+    Exit;
+  end;
+
+  Result := Exec(UninstallerPath, '', '', SW_SHOW, ewNoWait, ResultCode);
+end;
+
+function GetSelectedComponentNames(): string;
+begin
+  Result := WizardSelectedComponents(False);
+end;
+
+procedure SelectPreviousComponents;
+begin
+  if PreviousComponents <> '' then
+  begin
+    WizardSelectComponents(PreviousComponents);
+  end;
+end;
+
 procedure CleanupContextMenuKeys;
 begin
   RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\SystemFileAssociations\.mp4\shell\FFActions');
@@ -793,36 +989,166 @@ end;
 
 procedure ApplyPickerMenus;
 begin
-  ConfigurePickerMenu('.mp4',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
-  ConfigurePickerMenu('.mkv',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
-  ConfigurePickerMenu('.avi',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
-  ConfigurePickerMenu('.mov',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
-  ConfigurePickerMenu('.webm', 'extract_audio', 'extract audio', 'extract_audio_picker.exe');
-  ConfigurePickerMenu('.m4v',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+  if WizardIsComponentSelected('video\extract_audio') then
+  begin
+    ConfigurePickerMenu('.mp4',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+    ConfigurePickerMenu('.mkv',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+    ConfigurePickerMenu('.avi',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+    ConfigurePickerMenu('.mov',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+    ConfigurePickerMenu('.webm', 'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+    ConfigurePickerMenu('.m4v',  'extract_audio', 'extract audio', 'extract_audio_picker.exe');
+  end;
 
-  ConfigurePickerMenu('.mp4',  'convert', 'convert', 'convert_video_picker.exe');
-  ConfigurePickerMenu('.mkv',  'convert', 'convert', 'convert_video_picker.exe');
-  ConfigurePickerMenu('.avi',  'convert', 'convert', 'convert_video_picker.exe');
-  ConfigurePickerMenu('.mov',  'convert', 'convert', 'convert_video_picker.exe');
-  ConfigurePickerMenu('.webm', 'convert', 'convert', 'convert_video_picker.exe');
-  ConfigurePickerMenu('.m4v',  'convert', 'convert', 'convert_video_picker.exe');
+  if WizardIsComponentSelected('video\convert') then
+  begin
+    ConfigurePickerMenu('.mp4',  'convert', 'convert', 'convert_video_picker.exe');
+    ConfigurePickerMenu('.mkv',  'convert', 'convert', 'convert_video_picker.exe');
+    ConfigurePickerMenu('.avi',  'convert', 'convert', 'convert_video_picker.exe');
+    ConfigurePickerMenu('.mov',  'convert', 'convert', 'convert_video_picker.exe');
+    ConfigurePickerMenu('.webm', 'convert', 'convert', 'convert_video_picker.exe');
+    ConfigurePickerMenu('.m4v',  'convert', 'convert', 'convert_video_picker.exe');
+  end;
 
-  ConfigurePickerMenu('.wav',  'convert', 'convert', 'convert_audio_picker.exe');
-  ConfigurePickerMenu('.mp3',  'convert', 'convert', 'convert_audio_picker.exe');
-  ConfigurePickerMenu('.flac', 'convert', 'convert', 'convert_audio_picker.exe');
-  ConfigurePickerMenu('.m4a',  'convert', 'convert', 'convert_audio_picker.exe');
-  ConfigurePickerMenu('.ogg',  'convert', 'convert', 'convert_audio_picker.exe');
+  if WizardIsComponentSelected('audio\convert') then
+  begin
+    ConfigurePickerMenu('.wav',  'convert', 'convert', 'convert_audio_picker.exe');
+    ConfigurePickerMenu('.mp3',  'convert', 'convert', 'convert_audio_picker.exe');
+    ConfigurePickerMenu('.flac', 'convert', 'convert', 'convert_audio_picker.exe');
+    ConfigurePickerMenu('.m4a',  'convert', 'convert', 'convert_audio_picker.exe');
+    ConfigurePickerMenu('.ogg',  'convert', 'convert', 'convert_audio_picker.exe');
+  end;
 
-  ConfigurePickerMenu('.png',  'convert', 'convert', 'convert_image_picker.exe');
-  ConfigurePickerMenu('.jpg',  'convert', 'convert', 'convert_image_picker.exe');
-  ConfigurePickerMenu('.jpeg', 'convert', 'convert', 'convert_image_picker.exe');
-  ConfigurePickerMenu('.bmp',  'convert', 'convert', 'convert_image_picker.exe');
-  ConfigurePickerMenu('.webp', 'convert', 'convert', 'convert_image_picker.exe');
+  if WizardIsComponentSelected('image\convert') then
+  begin
+    ConfigurePickerMenu('.png',  'convert', 'convert', 'convert_image_picker.exe');
+    ConfigurePickerMenu('.jpg',  'convert', 'convert', 'convert_image_picker.exe');
+    ConfigurePickerMenu('.jpeg', 'convert', 'convert', 'convert_image_picker.exe');
+    ConfigurePickerMenu('.bmp',  'convert', 'convert', 'convert_image_picker.exe');
+    ConfigurePickerMenu('.webp', 'convert', 'convert', 'convert_image_picker.exe');
+  end;
 end;
 
 function InitializeSetup(): Boolean;
 begin
   Result := True;
+  IsInstalled := DetectInstalledVersion();
+
+  if IsInstalled and
+    (CompareVersions(InstalledVersion, '{#SetupSetting("AppVersion")}') > 0) then
+  begin
+    MsgBox(
+      'A newer version of FFActions is already installed (' +
+      InstalledVersion + ').' + #13#10 +
+      'This 1.2.2 installer cannot downgrade it.',
+      mbError,
+      MB_OK);
+    Result := False;
+  end;
+end;
+
+procedure InitializeWizard;
+var
+  PageCaption: string;
+  PageDescription: string;
+  PageSubCaption: string;
+begin
+  if not IsInstalled then
+  begin
+    Exit;
+  end;
+
+  PreviousComponents := GetPreviousData('SelectedComponents', '');
+  if PreviousComponents = '' then
+  begin
+    PreviousComponents := DetectInstalledComponentsFromFiles();
+  end;
+  SelectPreviousComponents;
+
+  if CompareVersions(InstalledVersion, '{#SetupSetting("AppVersion")}') = 0 then
+  begin
+    PageCaption := 'FFActions 1.2.2 is already installed';
+    PageDescription := 'Choose what you want to do.';
+    PageSubCaption :=
+      'You can modify the installed modules or run the uninstaller.';
+    MaintenancePage := CreateInputOptionPage(
+      wpWelcome,
+      PageCaption,
+      PageDescription,
+      PageSubCaption,
+      True,
+      False);
+    MaintenancePage.Add('Modify installed modules');
+    MaintenancePage.Add('Uninstall FFActions');
+  end
+  else
+  begin
+    PageCaption := 'Update FFActions';
+    PageDescription :=
+      'FFActions ' + InstalledVersion + ' is already installed.';
+    PageSubCaption :=
+      'You can update to 1.2.2 and adjust the installed modules, or run the uninstaller.';
+    MaintenancePage := CreateInputOptionPage(
+      wpWelcome,
+      PageCaption,
+      PageDescription,
+      PageSubCaption,
+      True,
+      False);
+    MaintenancePage.Add('Update to 1.2.2');
+    MaintenancePage.Add('Uninstall FFActions');
+  end;
+
+  MaintenancePage.Values[0] := True;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+
+  if IsInstalled and (MaintenancePage <> nil) and
+    (CurPageID = MaintenancePage.ID) then
+  begin
+    if MaintenancePage.Values[1] then
+    begin
+      if LaunchInstalledUninstaller() then
+      begin
+        CloseAfterUninstall := True;
+        Result := False;
+        WizardForm.Close;
+      end
+      else
+      begin
+        Result := False;
+      end;
+    end
+    else
+    begin
+      SelectPreviousComponents;
+    end;
+  end;
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+
+  if IsInstalled and (PageID = wpSelectDir) then
+  begin
+    Result := True;
+  end;
+end;
+
+procedure RegisterPreviousData(PreviousDataKey: Integer);
+begin
+  SetPreviousData(PreviousDataKey, 'SelectedComponents', GetSelectedComponentNames());
+end;
+
+procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);
+begin
+  if CloseAfterUninstall then
+  begin
+    Confirm := False;
+  end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

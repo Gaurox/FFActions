@@ -1,6 +1,6 @@
 # FFActions
 
-Version: `1.2.1`
+Version: `1.2.2`
 
 ---
 
@@ -34,13 +34,18 @@ The installer offers these modules:
 - Audio
 - Image
 
-## Recent 1.2.1 improvements
+## Recent 1.2.2 improvements
 
 - `Cut video` now uses a live preview, a dual-handle timeline, and synchronized frame and time inputs.
 - `Rotate / flip image` now uses a visual preview with direct transform buttons and reset.
 - `Rotate / flip video` now follows the same visual workflow, with frame preview and slider.
 - `Convert video`, `convert audio`, `convert image`, and `extract audio` now use compact centered format pickers with direct-click buttons, wired directly from the installed context menu.
+- `Change audio pitch` now includes a slider, synchronized numeric fields, presets, and a 5-second preview.
+- `Change audio speed` now uses the same slider-driven workflow, with target duration sync and preview playback.
+- `Convert to icon` now shows dynamic previews for each selected ICO size.
+- The installer now supports same-version maintenance, older-version updates, module changes, and English-only setup text.
 - `Compress audio`, `compress image`, `crop video`, and the small picker dialogs received layout fixes for cut text and tighter spacing.
+- The project license changed to GNU GPL v3.0.
 
 ---
 
@@ -162,9 +167,9 @@ Input/output formats: `mp3 wav flac m4a ogg`
 
 ## Change Speed
 
-Adjust playback speed.
+Adjust playback speed with synchronized percentage, target duration, and slider controls.
 
-Options: percentage, target duration, pitch preservation
+Options: percentage, target duration, slider presets, pitch preservation, 5-second preview
 
 Formats: `mp3 wav flac m4a ogg`
 
@@ -172,9 +177,9 @@ Formats: `mp3 wav flac m4a ogg`
 
 ## Change Pitch
 
-Adjust audio pitch.
+Adjust audio pitch with synchronized semitone, percentage, and slider controls.
 
-Options: semitones, percentage, duration preservation
+Options: semitones, percentage, presets, duration preservation, 5-second preview
 
 Formats: `mp3 wav flac m4a ogg`
 
@@ -256,7 +261,7 @@ Formats: `png jpg jpeg webp bmp`
 
 Generate an `.ico` file from an image.
 
-Options: sizes `16 24 32 48 64 128 256`, modes `Fit Fill`, background `transparent white black`
+Options: sizes `16 32 48 64 128 256`, modes `Fit Fill`, background `transparent white black`, dynamic size previews
 
 Input formats: `png jpg jpeg webp bmp`
 
@@ -343,7 +348,7 @@ For full local builds, the project expects:
 Example to rebuild all local executables:
 
 ```powershell
-.\build_all.ps1 -Version 1.2.1
+.\build_all.ps1 -Version 1.2.2
 ```
 
 Example to build the installer after that:
@@ -409,7 +414,7 @@ FFmpeg license information:
 
 # LICENSE
 
-FFActions source code is distributed under the MIT License.
+FFActions source code is distributed under the GNU General Public License v3.0.
 
 See [LICENSE](LICENSE).
 
