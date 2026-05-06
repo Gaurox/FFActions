@@ -1,18 +1,30 @@
 param(
-    [Parameter(Mandatory = $true)][string]$SharedFile,
+    [string[]]$SharedFile = @(),
     [Parameter(Mandatory = $true)][string]$TemplateFile,
     [Parameter(Mandatory = $true)][string]$OutputFile
 )
 
-$shared = Get-Content -LiteralPath $SharedFile -Raw -Encoding UTF8
+$sharedParts = New-Object System.Collections.Generic.List[string]
+foreach ($path in $SharedFile) {
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        continue
+    }
+
+    $sharedParts.Add((Get-Content -LiteralPath $path -Raw -Encoding UTF8))
+}
+
+$shared = ($sharedParts.ToArray() -join "`r`n`r`n")
 $template = Get-Content -LiteralPath $TemplateFile -Raw -Encoding UTF8
 
 $marker = '#__FFCOMMON_INJECT_HERE__'
-if ($template.IndexOf($marker, [System.StringComparison]::Ordinal) -lt 0) {
-    throw "Marker not found in template: $marker"
+
+if ($template.IndexOf($marker, [System.StringComparison]::Ordinal) -ge 0) {
+    $result = $template.Replace($marker, $shared)
+}
+else {
+    $result = $template
 }
 
-$result = $template.Replace($marker, $shared)
 $targetPath = [System.IO.Path]::GetFullPath($OutputFile)
 $encoding = New-Object System.Text.UTF8Encoding($false)
 

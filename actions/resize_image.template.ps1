@@ -66,25 +66,176 @@ function Format-ScaleButtonText {
     return ('x' + $Scale.ToString("0.##", [System.Globalization.CultureInfo]::CurrentCulture))
 }
 
+function Quote-ToolArgument {
+    param([string]$Value)
+
+    if ($null -eq $Value -or $Value -eq '') {
+        return '""'
+    }
+
+    if ($Value -notmatch '[\s"]') {
+        return $Value
+    }
+
+    $escaped = $Value -replace '(\\*)"', '$1$1\\"'
+    $escaped = $escaped -replace '(\\+)$', '$1$1'
+    return '"' + $escaped + '"'
+}
+
+function Join-ToolArguments {
+    param([object[]]$Arguments)
+
+    return (($Arguments | ForEach-Object {
+        Quote-ToolArgument ([string]$_)
+    }) -join ' ')
+}
+
+function Resolve-ToolPath {
+    param([Parameter(Mandatory = $true)][string]$ToolName)
+
+    $candidates = @()
+
+    $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    if (-not [string]::IsNullOrWhiteSpace($exePath)) {
+        $exeDir = Split-Path -Parent $exePath
+        $appRoot = Split-Path -Parent $exeDir
+        $candidates += Join-Path $appRoot "tools\ffmpeg\$ToolName"
+        $candidates += Join-Path $exeDir "..\tools\ffmpeg\$ToolName"
+    }
+
+    if ($PSScriptRoot) {
+        $candidates += Join-Path $PSScriptRoot "..\tools\ffmpeg\$ToolName"
+        $candidates += Join-Path $PSScriptRoot "tools\ffmpeg\$ToolName"
+    }
+
+    $candidates += Join-Path (Get-Location).Path "tools\ffmpeg\$ToolName"
+
+    foreach ($candidate in $candidates) {
+        $full = [System.IO.Path]::GetFullPath($candidate)
+        if ([System.IO.File]::Exists($full)) { return $full }
+    }
+
+    return $null
+}
+
+function Invoke-HiddenTool {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][object[]]$Arguments
+    )
+
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $FilePath
+    $psi.Arguments = Join-ToolArguments -Arguments $Arguments
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $psi
+
+    [void]$process.Start()
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    $exitCode = $process.ExitCode
+    $process.Dispose()
+
+    return [PSCustomObject]@{
+        ExitCode = $exitCode
+        StdOut   = $stdout
+        StdErr   = $stderr
+    }
+}
+
+function New-TemporaryPreviewPng {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputPath,
+        [Parameter(Mandatory = $true)][string]$FfmpegPath
+    )
+
+    $previewPath = Join-Path ([System.IO.Path]::GetTempPath()) ('ffactions_preview_' + [Guid]::NewGuid().ToString('N') + '.png')
+    $args = @(
+        '-hide_banner',
+        '-loglevel', 'error',
+        '-y',
+        '-i', $InputPath,
+        '-frames:v', '1',
+        '-update', '1',
+        $previewPath
+    )
+
+    $result = Invoke-HiddenTool -FilePath $FfmpegPath -Arguments $args
+    if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $previewPath)) {
+        if (Test-Path -LiteralPath $previewPath) {
+            try { Remove-Item -LiteralPath $previewPath -Force -ErrorAction SilentlyContinue } catch {}
+        }
+        Show-ErrorAndExit (Get-ShortErrorText -StdErr $result.StdErr -FallbackMessage 'This image file appears to be corrupted, incomplete, or unreadable.')
+    }
+
+    return $previewPath
+}
+
+function New-WebPResizeArguments {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputPath,
+        [Parameter(Mandatory = $true)][string]$OutputPath,
+        [Parameter(Mandatory = $true)][int]$Width,
+        [Parameter(Mandatory = $true)][int]$Height
+    )
+
+    $filter = 'scale={0}:{1}:flags=lanczos' -f $Width, $Height
+    return @(
+        '-hide_banner',
+        '-loglevel', 'error',
+        '-y',
+        '-i', $InputPath,
+        '-vf', $filter,
+        '-c:v', 'libwebp',
+        '-quality', '90',
+        '-compression_level', '4',
+        $OutputPath
+    )
+}
+
 if ([string]::IsNullOrWhiteSpace($inputFile) -or -not (Test-Path -LiteralPath $inputFile)) {
     Show-ErrorAndExit "Input file not found."
+}
+
+$sourceExtension = [System.IO.Path]::GetExtension($inputFile).ToLowerInvariant()
+$ffmpeg = $null
+$metadataFile = $inputFile
+$temporaryMetadataFile = $null
+
+if ($sourceExtension -eq '.webp') {
+    $ffmpeg = Resolve-ToolPath 'ffmpeg.exe'
+    if (-not $ffmpeg) {
+        Show-ErrorAndExit "ffmpeg.exe not found."
+    }
+
+    $temporaryMetadataFile = New-TemporaryPreviewPng -InputPath $inputFile -FfmpegPath $ffmpeg
+    $metadataFile = $temporaryMetadataFile
 }
 
 $srcStream = $null
 $srcImage = $null
 
 try {
-    $srcStream = [System.IO.File]::Open($inputFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    $srcStream = [System.IO.File]::Open($metadataFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
     $srcImage = [System.Drawing.Image]::FromStream($srcStream, $false, $false)
     $origWidth = [int]$srcImage.Width
     $origHeight = [int]$srcImage.Height
 }
 catch {
-    Show-ErrorAndExit "Failed to read image metadata."
+    Show-ErrorAndExit "This image file appears to be corrupted, incomplete, or unreadable."
 }
 finally {
     if ($srcImage) { $srcImage.Dispose() }
     if ($srcStream) { $srcStream.Dispose() }
+    if ($temporaryMetadataFile -and (Test-Path -LiteralPath $temporaryMetadataFile)) {
+        try { Remove-Item -LiteralPath $temporaryMetadataFile -Force -ErrorAction SilentlyContinue } catch {}
+    }
 }
 
 if ($origWidth -le 0 -or $origHeight -le 0) {
@@ -524,21 +675,44 @@ $bitmap = $null
 $graphics = $null
 
 try {
-    $inStream = [System.IO.File]::Open($inputFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-    $inputImage = [System.Drawing.Image]::FromStream($inStream, $false, $false)
+    if ($sourceExtension -eq '.webp') {
+        if (-not $ffmpeg) {
+            $ffmpeg = Resolve-ToolPath 'ffmpeg.exe'
+        }
 
-    $bitmap = New-Object System.Drawing.Bitmap($newWidth, $newHeight)
-    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-    $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
-    $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-    $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-    $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-    $graphics.DrawImage($inputImage, 0, 0, $newWidth, $newHeight)
+        if (-not $ffmpeg) {
+            Show-ErrorAndExit "ffmpeg.exe not found."
+        }
 
-    $imageFormat = $inputImage.RawFormat
-    $bitmap.Save($outputFile, $imageFormat)
+        $ffmpegArgs = New-WebPResizeArguments -InputPath $inputFile -OutputPath $outputFile -Width $newWidth -Height $newHeight
+        $result = Invoke-HiddenTool -FilePath $ffmpeg -Arguments $ffmpegArgs
+        if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $outputFile)) {
+            if (Test-Path -LiteralPath $outputFile) {
+                try { Remove-Item -LiteralPath $outputFile -Force -ErrorAction SilentlyContinue } catch {}
+            }
+            Show-ErrorAndExit (Get-ShortErrorText -StdErr $result.StdErr -FallbackMessage 'Resize failed.')
+        }
+    }
+    else {
+        $inStream = [System.IO.File]::Open($inputFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        $inputImage = [System.Drawing.Image]::FromStream($inStream, $false, $false)
+
+        $bitmap = New-Object System.Drawing.Bitmap($newWidth, $newHeight)
+        $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+        $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+        $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+        $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+        $graphics.DrawImage($inputImage, 0, 0, $newWidth, $newHeight)
+
+        $imageFormat = $inputImage.RawFormat
+        $bitmap.Save($outputFile, $imageFormat)
+    }
 }
 catch {
+    if (Test-Path -LiteralPath $outputFile) {
+        try { Remove-Item -LiteralPath $outputFile -Force -ErrorAction SilentlyContinue } catch {}
+    }
     Show-ErrorAndExit "Resize failed."
 }
 finally {

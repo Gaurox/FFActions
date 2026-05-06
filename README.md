@@ -1,6 +1,6 @@
 # FFActions
 
-Version: `1.2.2`
+Version: `1.3.0`
 
 ---
 
@@ -42,10 +42,18 @@ The installer offers these modules:
 - `Convert video`, `convert audio`, `convert image`, and `extract audio` now use compact centered format pickers with direct-click buttons, wired directly from the installed context menu.
 - `Change audio pitch` now includes a slider, synchronized numeric fields, presets, and a 5-second preview.
 - `Change audio speed` now uses the same slider-driven workflow, with target duration sync and preview playback.
+- `Change video speed` adds the same speed workflow to video files, including video preview generation.
 - `Convert to icon` now shows dynamic previews for each selected ICO size.
 - The installer now supports same-version maintenance, older-version updates, module changes, and English-only setup text.
 - `Compress audio`, `compress image`, `crop video`, and the small picker dialogs received layout fixes for cut text and tighter spacing.
 - The project license changed to GNU GPL v3.0.
+
+## Recent 1.3.0 updates
+
+- Added a unified `Media info` action for video, audio, and image files.
+- `Media info` now appears at the bottom of FFActions submenus in Explorer.
+- Improved WebP compatibility for `Convert to icon`, `Crop image`, `Rotate / flip image`, and `Resize image`.
+- Improved user-facing FFmpeg error messages for corrupted or unsupported files.
 
 ---
 
@@ -103,6 +111,16 @@ Formats: `mp4 mkv avi mov webm m4v`
 
 ![Resize Video](screenshots/ResizeVideo.jpg)
 
+## Change Video Speed
+
+Adjust video playback speed with synchronized percentage, target duration, and slider controls.
+
+Options: percentage, target duration, slider presets, audio pitch preservation, 10-second video preview
+
+Formats: `mp4 mkv avi mov webm m4v`
+
+![Change Video Speed](screenshots/changeVideoSpeed.png)
+
 ## Crop Video
 
 Visual crop tool with frame preview and a timeline slider to inspect another moment of the video before applying one fixed crop to the full file.
@@ -132,6 +150,14 @@ Options: `High quality Balanced Small file`, optional target size
 Formats: `mp4 mkv avi mov webm m4v`
 
 ![Compress Video](screenshots/CompressVideo.jpg)
+
+## Media Info
+
+Display key technical metadata for the selected media file (format, duration/size, streams, dimensions, bitrate when available).
+
+Formats: `mp4 mkv avi mov webm m4v` `mp3 wav flac m4a ogg` `png jpg jpeg webp bmp`
+
+![Media Info](screenshots/media_info.png)
 
 ## Convert Video
 
@@ -280,7 +306,7 @@ This method is useful if you want to review the code, inspect the scripts, or ru
 Not every action is stored directly as a final ready-to-run script. A large part of the project is built around:
 
 - template files in `actions\*.template.ps1`
-- a shared common file in `actions\_shared\ffcommon_progress.ps1`
+- shared helper files in `actions\_shared\`
 - a build script that combines them into usable final scripts
 
 In practice, the flow is:
@@ -305,14 +331,10 @@ If you only want to test one feature, you can generate that final script directl
 Example with `resize_image`:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\actions\build_ffaction.ps1 -SharedFile .\actions\_shared\ffcommon_progress.ps1 -TemplateFile .\actions\resize_image.template.ps1 -OutputFile .\actions\resize_image.ps1
+powershell -ExecutionPolicy Bypass -File .\actions\build_ffaction.ps1 -TemplateFile .\actions\resize_image.template.ps1 -OutputFile .\actions\resize_image.ps1
 ```
 
-This command takes:
-
-- the shared common block
-- the action template
-- then produces a final script that is ready to run
+This command injects the required shared helpers automatically, then produces a final script ready to run.
 
 ## Run A Script Manually
 
@@ -348,7 +370,7 @@ For full local builds, the project expects:
 Example to rebuild all local executables:
 
 ```powershell
-.\build_all.ps1 -Version 1.2.2
+.\build_all.ps1 -Version 1.3.0
 ```
 
 Example to build the installer after that:

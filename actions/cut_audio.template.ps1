@@ -10,27 +10,8 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 function Show-ErrorAndExit {
     param([string]$Message)
 
-    [System.Windows.Forms.MessageBox]::Show(
-        $Message,
-        'FFActions - Error',
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
-    ) | Out-Null
-
+    Show-Error $Message
     exit 1
-}
-
-function Get-AppRoot {
-    $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-    $exeDir = Split-Path -Parent $exePath
-    return Split-Path -Parent $exeDir
-}
-
-function Get-ToolPath {
-    param([Parameter(Mandatory = $true)][string]$ToolName)
-
-    $appRoot = Get-AppRoot
-    return Join-Path $appRoot "tools\ffmpeg\$ToolName"
 }
 
 function Quote-ProcessArgument {
@@ -89,59 +70,9 @@ function Invoke-HiddenProcess {
     return $result
 }
 
-function Get-UniqueOutputPath {
-    param([Parameter(Mandatory = $true)][string]$DesiredPath)
-
-    if (-not (Test-Path -LiteralPath $DesiredPath)) {
-        return $DesiredPath
-    }
-
-    $dir = Split-Path -Parent $DesiredPath
-    $base = [System.IO.Path]::GetFileNameWithoutExtension($DesiredPath)
-    $ext = [System.IO.Path]::GetExtension($DesiredPath)
-
-    for ($i = 1; $i -le 999; $i++) {
-        $candidate = Join-Path $dir ("{0}_{1:D3}{2}" -f $base, $i, $ext)
-        if (-not (Test-Path -LiteralPath $candidate)) {
-            return $candidate
-        }
-    }
-
-    throw 'Unable to create a unique output filename.'
-}
-
 function Remove-FileIfExists {
     param([string]$Path)
-    if (-not [string]::IsNullOrWhiteSpace($Path) -and (Test-Path -LiteralPath $Path)) {
-        try { Remove-Item -LiteralPath $Path -Force -ErrorAction Stop } catch {}
-    }
-}
-
-function Get-ShortErrorText {
-    param([string]$StdErr)
-
-    $msg = 'FFmpeg failed during processing.'
-    if (-not [string]::IsNullOrWhiteSpace($StdErr)) {
-        $firstLines = ($StdErr -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | Select-Object -First 12) -join "`r`n"
-        if (-not [string]::IsNullOrWhiteSpace($firstLines)) {
-            $msg = $firstLines
-        }
-    }
-
-    return $msg
-}
-
-function Set-ControlDoubleBuffered {
-    param([Parameter(Mandatory = $true)][System.Windows.Forms.Control]$Control)
-
-    try {
-        $flags = [System.Reflection.BindingFlags]'Instance, NonPublic'
-        $property = $Control.GetType().GetProperty('DoubleBuffered', $flags)
-        if ($property) {
-            $property.SetValue($Control, $true, $null)
-        }
-    }
-    catch {}
+    Remove-PartialOutput -Path $Path
 }
 
 function Format-SecondsForDisplay {
@@ -572,7 +503,7 @@ function Get-FinalAudioArguments {
             return @(
                 '-y',
                 '-hide_banner',
-                '-progress', '-',
+                 '-progress', 'pipe:1',
                 '-nostats',
                 '-ss', $startText,
                 '-t', $durationText,
@@ -586,7 +517,7 @@ function Get-FinalAudioArguments {
             return @(
                 '-y',
                 '-hide_banner',
-                '-progress', '-',
+                 '-progress', 'pipe:1',
                 '-nostats',
                 '-ss', $startText,
                 '-t', $durationText,
@@ -601,7 +532,7 @@ function Get-FinalAudioArguments {
             return @(
                 '-y',
                 '-hide_banner',
-                '-progress', '-',
+                '-progress', 'pipe:1',
                 '-nostats',
                 '-ss', $startText,
                 '-t', $durationText,
@@ -616,7 +547,7 @@ function Get-FinalAudioArguments {
             return @(
                 '-y',
                 '-hide_banner',
-                '-progress', '-',
+                '-progress', 'pipe:1',
                 '-nostats',
                 '-ss', $startText,
                 '-t', $durationText,
@@ -631,7 +562,7 @@ function Get-FinalAudioArguments {
             return @(
                 '-y',
                 '-hide_banner',
-                '-progress', '-',
+                '-progress', 'pipe:1',
                 '-nostats',
                 '-ss', $startText,
                 '-t', $durationText,
@@ -679,7 +610,7 @@ function Show-CutAudioWindow {
     $wavePanel.Size = New-Object System.Drawing.Size(860, 180)
     $wavePanel.BorderStyle = 'FixedSingle'
     $wavePanel.BackColor = [System.Drawing.Color]::White
-    Set-ControlDoubleBuffered -Control $wavePanel
+    Enable-ControlDoubleBuffering -Control $wavePanel
     $form.Controls.Add($wavePanel)
 
     $labelStart = New-Object System.Windows.Forms.Label

@@ -7,19 +7,6 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System
 
-function Show-ErrorAndExit {
-    param([string]$Message)
-
-    [System.Windows.Forms.MessageBox]::Show(
-        $Message,
-        'FFActions - Error',
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
-    ) | Out-Null
-
-    exit 1
-}
-
 function Write-DebugLog {
     param([string]$Message)
 
@@ -31,7 +18,7 @@ function Write-DebugLog {
     catch {}
 }
 
-function Get-AppRoot {
+function Get-LauncherAwareAppRoot {
     if ($PSCommandPath) {
         $scriptDir = Split-Path -Parent $PSCommandPath
         return Split-Path -Parent $scriptDir
@@ -42,109 +29,11 @@ function Get-AppRoot {
     return Split-Path -Parent $exeDir
 }
 
-function Get-ToolPath {
+function Get-LauncherAwareToolPath {
     param([Parameter(Mandatory = $true)][string]$ToolName)
 
-    $appRoot = Get-AppRoot
+    $appRoot = Get-LauncherAwareAppRoot
     return Join-Path $appRoot "tools\ffmpeg\$ToolName"
-}
-
-function Quote-ProcessArgument {
-    param([string]$Value)
-
-    if ($null -eq $Value -or $Value -eq '') {
-        return '""'
-    }
-
-    if ($Value -notmatch '[\s"]') {
-        return $Value
-    }
-
-    $escaped = $Value -replace '(\\*)"', '$1$1\\"'
-    $escaped = $escaped -replace '(\\+)$', '$1$1'
-    return '"' + $escaped + '"'
-}
-
-function Join-ProcessArguments {
-    param([object[]]$Arguments)
-
-    return (($Arguments | ForEach-Object {
-        Quote-ProcessArgument ([string]$_)
-    }) -join ' ')
-}
-
-function Invoke-HiddenProcess {
-    param(
-        [Parameter(Mandatory = $true)][string]$FilePath,
-        [Parameter(Mandatory = $true)][object[]]$Arguments
-    )
-
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $FilePath
-    $psi.UseShellExecute = $false
-    $psi.CreateNoWindow = $true
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.Arguments = Join-ProcessArguments -Arguments $Arguments
-
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $psi
-
-    [void]$process.Start()
-    $stdOut = $process.StandardOutput.ReadToEnd()
-    $stdErr = $process.StandardError.ReadToEnd()
-    $process.WaitForExit()
-
-    $result = [PSCustomObject]@{
-        ExitCode = $process.ExitCode
-        StdOut   = $stdOut
-        StdErr   = $stdErr
-    }
-
-    $process.Dispose()
-    return $result
-}
-
-function Get-UniqueOutputPath {
-    param([Parameter(Mandatory = $true)][string]$DesiredPath)
-
-    if (-not (Test-Path -LiteralPath $DesiredPath)) {
-        return $DesiredPath
-    }
-
-    $dir = Split-Path -Parent $DesiredPath
-    $base = [System.IO.Path]::GetFileNameWithoutExtension($DesiredPath)
-    $ext = [System.IO.Path]::GetExtension($DesiredPath)
-
-    for ($i = 1; $i -le 999; $i++) {
-        $candidate = Join-Path $dir ("{0}_{1:D3}{2}" -f $base, $i, $ext)
-        if (-not (Test-Path -LiteralPath $candidate)) {
-            return $candidate
-        }
-    }
-
-    throw 'Unable to create a unique output filename.'
-}
-
-function Remove-FileIfExists {
-    param([string]$Path)
-    if (-not [string]::IsNullOrWhiteSpace($Path) -and (Test-Path -LiteralPath $Path)) {
-        try { Remove-Item -LiteralPath $Path -Force -ErrorAction Stop } catch {}
-    }
-}
-
-function Get-ShortErrorText {
-    param([string]$StdErr)
-
-    $msg = 'FFmpeg failed during processing.'
-    if (-not [string]::IsNullOrWhiteSpace($StdErr)) {
-        $firstLines = ($StdErr -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | Select-Object -First 12) -join "`r`n"
-        if (-not [string]::IsNullOrWhiteSpace($firstLines)) {
-            $msg = $firstLines
-        }
-    }
-
-    return $msg
 }
 
 function Format-SecondsForDisplay {
@@ -226,7 +115,7 @@ function Get-FinalAudioArguments {
     $args = @(
         '-y',
         '-hide_banner',
-        '-progress', '-',
+        '-progress', 'pipe:1',
         '-nostats',
         '-i', $InputFile,
         '-vn'
@@ -521,7 +410,7 @@ function Show-PitchWindow {
         }
         catch {}
 
-        Remove-FileIfExists -Path $script:previewFile
+        Remove-PartialOutput -Path $script:previewFile
         $script:previewFile = $null
         $script:isPreviewPlaying = $false
         $buttonPreview.Text = 'Preview 5s'
@@ -561,7 +450,7 @@ function Show-PitchWindow {
 
             $result = Invoke-HiddenProcess -FilePath $FfmpegPath -Arguments $args
             if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $previewPath)) {
-                Remove-FileIfExists -Path $previewPath
+                Remove-PartialOutput -Path $previewPath
                 throw (Get-ShortErrorText -StdErr $result.StdErr)
             }
 
@@ -735,7 +624,8 @@ function Show-PitchWindow {
     catch {
         $message = $_.Exception.Message
         $form.Dispose()
-        Show-ErrorAndExit $message
+        Show-Error $message
+        exit 1
     }
 }
 
@@ -747,22 +637,26 @@ try {
 
     if (-not (Test-Path -LiteralPath $InputFile)) {
         Write-DebugLog 'Input file missing'
-        Show-ErrorAndExit 'Input file not found.'
+        Show-Error 'Input file not found.'
+        exit 1
     }
 
     $extension = [System.IO.Path]::GetExtension($InputFile).ToLowerInvariant()
     if ($extension -notin @('.wav', '.mp3', '.flac', '.m4a', '.ogg')) {
-        Show-ErrorAndExit 'Unsupported input format. Only .wav, .mp3, .flac, .m4a and .ogg are supported.'
+        Show-Error 'Unsupported input format. Only .wav, .mp3, .flac, .m4a and .ogg are supported.'
+        exit 1
     }
 
-    $ffmpegPath = Get-ToolPath -ToolName 'ffmpeg.exe'
-    $ffprobePath = Get-ToolPath -ToolName 'ffprobe.exe'
+    $ffmpegPath = Get-LauncherAwareToolPath -ToolName 'ffmpeg.exe'
+    $ffprobePath = Get-LauncherAwareToolPath -ToolName 'ffprobe.exe'
 
     if (-not (Test-Path -LiteralPath $ffmpegPath)) {
-        Show-ErrorAndExit 'ffmpeg.exe not found.'
+        Show-Error 'ffmpeg.exe not found.'
+        exit 1
     }
     if (-not (Test-Path -LiteralPath $ffprobePath)) {
-        Show-ErrorAndExit 'ffprobe.exe not found.'
+        Show-Error 'ffprobe.exe not found.'
+        exit 1
     }
 
     $audioInfo = Get-AudioInfo -FfprobePath $ffprobePath -FilePath $InputFile
@@ -801,12 +695,14 @@ try {
     }
 
     if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $outputFile)) {
-        Remove-FileIfExists -Path $outputFile
-        Show-ErrorAndExit (Get-ShortErrorText -StdErr $result.StdErr)
+        Remove-PartialOutput -Path $outputFile
+        Show-Error (Get-ShortErrorText -StdErr $result.StdErr)
+        exit 1
     }
 
     exit 0
 }
 catch {
-    Show-ErrorAndExit $_.Exception.Message
+    Show-Error $_.Exception.Message
+    exit 1
 }

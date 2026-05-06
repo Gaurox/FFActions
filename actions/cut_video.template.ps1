@@ -320,15 +320,7 @@ function Get-EncodingPlan {
 function Get-ShortErrorText {
     param([string]$StdErr)
 
-    $msg = 'FFmpeg failed during processing.'
-    if (-not [string]::IsNullOrWhiteSpace($StdErr)) {
-        $firstLines = ($StdErr -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | Select-Object -First 12) -join "`r`n"
-        if (-not [string]::IsNullOrWhiteSpace($firstLines)) {
-            $msg = $firstLines
-        }
-    }
-
-    return $msg
+    return Get-ShortErrorTextFromFfmpeg -StdErr $StdErr -FallbackMessage 'FFmpeg failed during processing.'
 }
 
 function Remove-PartialOutput {

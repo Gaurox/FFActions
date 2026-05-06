@@ -6,121 +6,6 @@ param(
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-function Show-Error([string]$Message) {
-    [System.Windows.Forms.MessageBox]::Show(
-        $Message,
-        'FFActions - Error',
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
-    ) | Out-Null
-}
-
-function Get-AppRoot {
-    $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-    $exeDir = Split-Path -Parent $exePath
-    return Split-Path -Parent $exeDir
-}
-
-function Get-ToolPath([string]$ToolName) {
-    $appRoot = Get-AppRoot
-    return Join-Path $appRoot "tools\ffmpeg\$ToolName"
-}
-
-function Quote-ProcessArgument {
-    param([string]$Value)
-
-    if ($null -eq $Value) { return '""' }
-    if ($Value -eq '') { return '""' }
-    if ($Value -notmatch '[\s"]') { return $Value }
-
-    $escaped = $Value -replace '(\\*)"', '$1$1\\"'
-    $escaped = $escaped -replace '(\\+)$', '$1$1'
-    return '"' + $escaped + '"'
-}
-
-function Join-ProcessArguments {
-    param([object[]]$Arguments)
-
-    $quoted = foreach ($arg in $Arguments) {
-        Quote-ProcessArgument ([string]$arg)
-    }
-
-    return ($quoted -join ' ')
-}
-
-function Invoke-HiddenProcess {
-    param(
-        [Parameter(Mandatory = $true)][string]$FilePath,
-        [Parameter(Mandatory = $true)][object[]]$Arguments
-    )
-
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $FilePath
-    $psi.Arguments = Join-ProcessArguments -Arguments $Arguments
-    $psi.UseShellExecute = $false
-    $psi.CreateNoWindow = $true
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $psi
-    [void]$process.Start()
-
-    $stdOut = $process.StandardOutput.ReadToEnd()
-    $stdErr = $process.StandardError.ReadToEnd()
-
-    $process.WaitForExit()
-    $exitCode = $process.ExitCode
-    $process.Dispose()
-
-    return [PSCustomObject]@{
-        ExitCode = $exitCode
-        StdOut   = $stdOut
-        StdErr   = $stdErr
-    }
-}
-
-function Get-UniqueOutputPath([string]$DesiredPath) {
-    if (-not (Test-Path -LiteralPath $DesiredPath)) {
-        return $DesiredPath
-    }
-
-    $dir = Split-Path -Parent $DesiredPath
-    $base = [System.IO.Path]::GetFileNameWithoutExtension($DesiredPath)
-    $ext = [System.IO.Path]::GetExtension($DesiredPath)
-
-    for ($i = 1; $i -le 999; $i++) {
-        $candidate = Join-Path $dir ("{0}_{1:D3}{2}" -f $base, $i, $ext)
-        if (-not (Test-Path -LiteralPath $candidate)) {
-            return $candidate
-        }
-    }
-
-    throw 'Unable to create a unique output filename.'
-}
-
-function Remove-PartialOutput {
-    param([string]$Path)
-
-    if ([string]::IsNullOrWhiteSpace($Path)) { return }
-    if (Test-Path -LiteralPath $Path) {
-        try { Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue } catch {}
-    }
-}
-
-function Get-ShortErrorText {
-    param([string]$StdErr)
-
-    if (-not [string]::IsNullOrWhiteSpace($StdErr)) {
-        $firstLines = ($StdErr -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | Select-Object -First 12) -join "`r`n"
-        if (-not [string]::IsNullOrWhiteSpace($firstLines)) {
-            return $firstLines
-        }
-    }
-
-    return 'FFmpeg failed during video crop.'
-}
-
 function Get-VideoInfo {
     param(
         [Parameter(Mandatory = $true)][string]$FfprobePath,
@@ -237,7 +122,7 @@ function New-VideoPreviewBitmap {
 
         $result = Invoke-HiddenProcess -FilePath $FfmpegPath -Arguments $args
         if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $tmpPath)) {
-            throw (Get-ShortErrorText -StdErr $result.StdErr)
+            throw (Get-ShortErrorText -StdErr $result.StdErr -FallbackMessage 'FFmpeg failed during video crop.')
         }
 
         return New-PreviewBitmap -Path $tmpPath -MaxWidth $MaxWidth -MaxHeight $MaxHeight
@@ -1165,7 +1050,7 @@ try {
 
     if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $script:OutputFile)) {
         Remove-PartialOutput -Path $script:OutputFile
-        Show-Error (Get-ShortErrorText -StdErr $result.StdErr)
+        Show-Error (Get-ShortErrorText -StdErr $result.StdErr -FallbackMessage 'FFmpeg failed during video crop.')
         exit 1
     }
 

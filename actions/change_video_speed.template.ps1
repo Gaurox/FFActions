@@ -7,6 +7,122 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System
 
+function Show-ErrorAndExit {
+    param([string]$Message)
+
+    [System.Windows.Forms.MessageBox]::Show(
+        $Message,
+        'FFActions - Error',
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Error
+    ) | Out-Null
+
+    exit 1
+}
+
+function Get-AppRoot {
+    $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    $exeDir = Split-Path -Parent $exePath
+    return Split-Path -Parent $exeDir
+}
+
+function Get-ToolPath {
+    param([Parameter(Mandatory = $true)][string]$ToolName)
+
+    $appRoot = Get-AppRoot
+    return Join-Path $appRoot "tools\ffmpeg\$ToolName"
+}
+
+function Quote-ProcessArgument {
+    param([string]$Value)
+
+    if ($null -eq $Value -or $Value -eq '') {
+        return '""'
+    }
+
+    if ($Value -notmatch '[\s"]') {
+        return $Value
+    }
+
+    $escaped = $Value -replace '(\\*)"', '$1$1\\"'
+    $escaped = $escaped -replace '(\\+)$', '$1$1'
+    return '"' + $escaped + '"'
+}
+
+function Join-ProcessArguments {
+    param([object[]]$Arguments)
+
+    return (($Arguments | ForEach-Object {
+        Quote-ProcessArgument ([string]$_)
+    }) -join ' ')
+}
+
+function Invoke-HiddenProcess {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][object[]]$Arguments
+    )
+
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $FilePath
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.Arguments = Join-ProcessArguments -Arguments $Arguments
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $psi
+
+    [void]$process.Start()
+    $stdOut = $process.StandardOutput.ReadToEnd()
+    $stdErr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+
+    $result = [PSCustomObject]@{
+        ExitCode = $process.ExitCode
+        StdOut   = $stdOut
+        StdErr   = $stdErr
+    }
+
+    $process.Dispose()
+    return $result
+}
+
+function Get-UniqueOutputPath {
+    param([Parameter(Mandatory = $true)][string]$DesiredPath)
+
+    if (-not (Test-Path -LiteralPath $DesiredPath)) {
+        return $DesiredPath
+    }
+
+    $dir = Split-Path -Parent $DesiredPath
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($DesiredPath)
+    $ext = [System.IO.Path]::GetExtension($DesiredPath)
+
+    for ($i = 1; $i -le 999; $i++) {
+        $candidate = Join-Path $dir ("{0}_{1:D3}{2}" -f $base, $i, $ext)
+        if (-not (Test-Path -LiteralPath $candidate)) {
+            return $candidate
+        }
+    }
+
+    throw 'Unable to create a unique output filename.'
+}
+
+function Remove-FileIfExists {
+    param([string]$Path)
+    if (-not [string]::IsNullOrWhiteSpace($Path) -and (Test-Path -LiteralPath $Path)) {
+        try { Remove-Item -LiteralPath $Path -Force -ErrorAction Stop } catch {}
+    }
+}
+
+function Get-ShortErrorText {
+    param([string]$StdErr)
+
+    return Get-ShortErrorTextFromFfmpeg -StdErr $StdErr -FallbackMessage 'FFmpeg failed during processing.'
+}
+
 function Parse-TimeInput {
     param([Parameter(Mandatory = $true)][string]$Text)
 
@@ -61,51 +177,50 @@ function Format-PercentValue {
     return ([Math]::Round($Value, 2)).ToString('0.##', [System.Globalization.CultureInfo]::InvariantCulture)
 }
 
-function Get-AudioInfo {
+function Get-VideoInfo {
     param(
         [Parameter(Mandatory = $true)][string]$FfprobePath,
         [Parameter(Mandatory = $true)][string]$FilePath
     )
 
-    $probeResult = Invoke-HiddenProcess -FilePath $FfprobePath -Arguments @(
+    $durationResult = Invoke-HiddenProcess -FilePath $FfprobePath -Arguments @(
         '-v', 'error',
-        '-select_streams', 'a:0',
-        '-show_entries', 'stream=sample_rate:format=duration',
-        '-of', 'default=nokey=0:noprint_wrappers=1',
+        '-show_entries', 'format=duration',
+        '-of', 'default=nokey=1:noprint_wrappers=1',
         $FilePath
     )
 
-    if ($probeResult.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($probeResult.StdOut)) {
-        $probeErr = $probeResult.StdErr.Trim()
-        if ([string]::IsNullOrWhiteSpace($probeErr)) {
-            $probeErr = 'ffprobe failed to read audio information.'
-        }
-        throw $probeErr
+    if ($durationResult.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($durationResult.StdOut)) {
+        throw 'Unable to determine video duration.'
     }
 
-    $map = @{}
-    foreach ($line in ($probeResult.StdOut -split "`r?`n")) {
-        if ($line -match '^(?<k>[^=]+)=(?<v>.*)$') {
-            $map[$matches['k']] = $matches['v']
-        }
-    }
-
-    if (-not $map.ContainsKey('duration')) {
-        throw 'Unable to determine audio duration.'
-    }
-
-    $duration = [double]::Parse($map['duration'].Replace(',', '.'), [System.Globalization.CultureInfo]::InvariantCulture)
+    $durationText = ($durationResult.StdOut -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | Select-Object -First 1)
+    $duration = [double]::Parse($durationText.Trim().Replace(',', '.'), [System.Globalization.CultureInfo]::InvariantCulture)
     if ($duration -le 0) {
-        throw 'Invalid audio duration.'
+        throw 'Invalid video duration.'
     }
 
+    $audioResult = Invoke-HiddenProcess -FilePath $FfprobePath -Arguments @(
+        '-v', 'error',
+        '-select_streams', 'a:0',
+        '-show_entries', 'stream=sample_rate',
+        '-of', 'default=nokey=1:noprint_wrappers=1',
+        $FilePath
+    )
+
+    $hasAudio = $false
     $sampleRate = 44100
-    if ($map.ContainsKey('sample_rate') -and $map['sample_rate'] -match '^\d+$') {
-        $sampleRate = [int]$map['sample_rate']
+    if ($audioResult.ExitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($audioResult.StdOut)) {
+        $rateText = ($audioResult.StdOut -split "`r?`n" | Where-Object { $_.Trim() -match '^\d+$' } | Select-Object -First 1)
+        if (-not [string]::IsNullOrWhiteSpace($rateText)) {
+            $hasAudio = $true
+            $sampleRate = [int]$rateText.Trim()
+        }
     }
 
     return [PSCustomObject]@{
         DurationSeconds = $duration
+        HasAudio        = $hasAudio
         SampleRate      = $sampleRate
     }
 }
@@ -135,89 +250,119 @@ function Build-AtempoChain {
     return ($parts -join ',')
 }
 
-function Get-FinalAudioArguments {
+function Get-AudioSpeedFilter {
     param(
-        [Parameter(Mandatory = $true)][string]$InputFile,
-        [Parameter(Mandatory = $true)][string]$OutputFile,
-        [Parameter(Mandatory = $true)][string]$Extension,
         [Parameter(Mandatory = $true)][double]$SpeedFactor,
         [Parameter(Mandatory = $true)][bool]$KeepPitch,
         [Parameter(Mandatory = $true)][int]$SampleRate
     )
 
     if ($KeepPitch) {
-        $filter = Build-AtempoChain -Factor $SpeedFactor
-    }
-    else {
-        $rate = [Math]::Max(1000, [int][Math]::Round($SampleRate * $SpeedFactor))
-        $filter = 'asetrate=' + $rate + ',aresample=' + $SampleRate
+        return (Build-AtempoChain -Factor $SpeedFactor)
     }
 
-    $args = @(
-        '-y',
-        '-hide_banner',
-        '-progress', 'pipe:1',
-        '-nostats',
-        '-i', $InputFile,
-        '-vn',
-        '-filter:a', $filter
+    $rate = [Math]::Max(1000, [int][Math]::Round($SampleRate * $SpeedFactor))
+    return ('asetrate=' + $rate + ',aresample=' + $SampleRate)
+}
+
+function Get-VideoSpeedFilter {
+    param([Parameter(Mandatory = $true)][double]$SpeedFactor)
+
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+    $setPtsFactor = 1.0 / $SpeedFactor
+    return ('setpts=' + $setPtsFactor.ToString('0.######', $culture) + '*PTS')
+}
+
+function Add-VideoCodecArguments {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Arguments,
+        [Parameter(Mandatory = $true)][string]$Extension,
+        [Parameter(Mandatory = $true)][bool]$HasAudio
     )
 
     switch ($Extension.ToLowerInvariant()) {
-        '.wav' {
-            $args += @('-c:a', 'pcm_s16le')
+        '.webm' {
+            $Arguments += @('-c:v', 'libvpx-vp9', '-crf', '32', '-b:v', '0')
+            if ($HasAudio) { $Arguments += @('-c:a', 'libopus', '-b:a', '160k') }
         }
-        '.mp3' {
-            $args += @('-c:a', 'libmp3lame', '-b:a', '320k')
-        }
-        '.flac' {
-            $args += @('-c:a', 'flac', '-compression_level', '5')
-        }
-        '.m4a' {
-            $args += @('-c:a', 'aac', '-b:a', '256k')
-        }
-        '.ogg' {
-            $args += @('-c:a', 'libvorbis', '-q:a', '6')
+        '.avi' {
+            $Arguments += @('-c:v', 'mpeg4', '-q:v', '3')
+            if ($HasAudio) { $Arguments += @('-c:a', 'libmp3lame', '-b:a', '192k') }
         }
         default {
-            throw 'Unsupported audio format. Only .wav, .mp3, .flac, .m4a and .ogg are supported.'
+            $Arguments += @('-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p')
+            if ($HasAudio) { $Arguments += @('-c:a', 'aac', '-b:a', '192k') }
         }
     }
 
+    return ,$Arguments
+}
+
+function Get-VideoSpeedArguments {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputFile,
+        [Parameter(Mandatory = $true)][string]$OutputFile,
+        [Parameter(Mandatory = $true)][string]$Extension,
+        [Parameter(Mandatory = $true)][double]$SpeedFactor,
+        [Parameter(Mandatory = $true)][bool]$KeepPitch,
+        [Parameter(Mandatory = $true)][bool]$HasAudio,
+        [Parameter(Mandatory = $true)][int]$SampleRate
+    )
+
+    $videoFilter = Get-VideoSpeedFilter -SpeedFactor $SpeedFactor
+    $args = @(
+        '-y',
+        '-hide_banner',
+        '-loglevel', 'error',
+        '-progress', 'pipe:1',
+        '-nostats',
+        '-i', $InputFile
+    )
+
+    if ($HasAudio) {
+        $audioFilter = Get-AudioSpeedFilter -SpeedFactor $SpeedFactor -KeepPitch $KeepPitch -SampleRate $SampleRate
+        $filter = '[0:v]' + $videoFilter + '[v];[0:a]' + $audioFilter + '[a]'
+        $args += @('-filter_complex', $filter, '-map', '[v]', '-map', '[a]')
+    }
+    else {
+        $args += @('-filter:v', $videoFilter, '-an')
+    }
+
+    $args = Add-VideoCodecArguments -Arguments $args -Extension $Extension -HasAudio $HasAudio
     $args += @($OutputFile)
     return ,$args
 }
 
-function Get-PreviewAudioArguments {
+function Get-PreviewVideoArguments {
     param(
         [Parameter(Mandatory = $true)][string]$InputFile,
         [Parameter(Mandatory = $true)][string]$OutputFile,
         [Parameter(Mandatory = $true)][double]$SpeedFactor,
         [Parameter(Mandatory = $true)][bool]$KeepPitch,
+        [Parameter(Mandatory = $true)][bool]$HasAudio,
         [Parameter(Mandatory = $true)][int]$SampleRate,
         [Parameter(Mandatory = $true)][double]$PreviewSeconds
     )
 
-    if ($KeepPitch) {
-        $filter = Build-AtempoChain -Factor $SpeedFactor
-    }
-    else {
-        $rate = [Math]::Max(1000, [int][Math]::Round($SampleRate * $SpeedFactor))
-        $filter = 'asetrate=' + $rate + ',aresample=' + $SampleRate
-    }
-
+    $videoFilter = Get-VideoSpeedFilter -SpeedFactor $SpeedFactor
     $args = @(
         '-y',
         '-hide_banner',
         '-loglevel', 'error',
         '-t', $PreviewSeconds.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture),
-        '-i', $InputFile,
-        '-vn',
-        '-filter:a', $filter,
-        '-c:a', 'pcm_s16le',
-        $OutputFile
+        '-i', $InputFile
     )
 
+    if ($HasAudio) {
+        $audioFilter = Get-AudioSpeedFilter -SpeedFactor $SpeedFactor -KeepPitch $KeepPitch -SampleRate $SampleRate
+        $filter = '[0:v]' + $videoFilter + '[v];[0:a]' + $audioFilter + '[a]'
+        $args += @('-filter_complex', $filter, '-map', '[v]', '-map', '[a]', '-c:a', 'aac', '-b:a', '128k')
+    }
+    else {
+        $args += @('-filter:v', $videoFilter, '-an')
+    }
+
+    $args += @('-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p', $OutputFile)
     return ,$args
 }
 
@@ -226,26 +371,23 @@ function Show-SpeedWindow {
         [Parameter(Mandatory = $true)][double]$OriginalDurationSeconds,
         [Parameter(Mandatory = $true)][string]$InputFile,
         [Parameter(Mandatory = $true)][string]$FfmpegPath,
+        [Parameter(Mandatory = $true)][bool]$HasAudio,
         [Parameter(Mandatory = $true)][int]$SampleRate
     )
 
     [System.Windows.Forms.Application]::EnableVisualStyles()
 
     $script:syncing = $false
-    $script:previewPlayer = $null
     $script:previewFile = $null
-    $script:isPreviewPlaying = $false
-    $script:previewTimer = $null
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = 'FFActions - Change audio speed'
+    $form.Text = 'FFActions - Change video speed'
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
     $form.ClientSize = New-Object System.Drawing.Size(560, 430)
     $form.TopMost = $true
-    $form.KeyPreview = $true
 
     $labelOriginal = New-Object System.Windows.Forms.Label
     $labelOriginal.Location = New-Object System.Drawing.Point(20, 18)
@@ -260,7 +402,7 @@ function Show-SpeedWindow {
     $form.Controls.Add($groupSpeed)
 
     $labelSliderLeft = New-Object System.Windows.Forms.Label
-    $labelSliderLeft.Text = '50%'
+    $labelSliderLeft.Text = '25%'
     $labelSliderLeft.Location = New-Object System.Drawing.Point(18, 28)
     $labelSliderLeft.Size = New-Object System.Drawing.Size(42, 20)
     $labelSliderLeft.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
@@ -269,15 +411,15 @@ function Show-SpeedWindow {
     $trackSpeed = New-Object System.Windows.Forms.TrackBar
     $trackSpeed.Location = New-Object System.Drawing.Point(60, 20)
     $trackSpeed.Size = New-Object System.Drawing.Size(404, 45)
-    $trackSpeed.Minimum = 50
-    $trackSpeed.Maximum = 200
-    $trackSpeed.TickFrequency = 10
+    $trackSpeed.Minimum = 25
+    $trackSpeed.Maximum = 400
+    $trackSpeed.TickFrequency = 25
     $trackSpeed.SmallChange = 1
-    $trackSpeed.LargeChange = 10
+    $trackSpeed.LargeChange = 25
     $groupSpeed.Controls.Add($trackSpeed)
 
     $labelSliderRight = New-Object System.Windows.Forms.Label
-    $labelSliderRight.Text = '200%'
+    $labelSliderRight.Text = '400%'
     $labelSliderRight.Location = New-Object System.Drawing.Point(466, 28)
     $labelSliderRight.Size = New-Object System.Drawing.Size(42, 20)
     $labelSliderRight.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
@@ -319,16 +461,16 @@ function Show-SpeedWindow {
     $labelDurationHint.Size = New-Object System.Drawing.Size(140, 20)
     $groupSpeed.Controls.Add($labelDurationHint)
 
-    $presetValues = @(50, 75, 100, 125, 150, 200)
-    $presetWidth = 62
-    $presetStartX = 18
+    $presetValues = @(25, 50, 75, 100, 125, 150, 200, 400)
+    $presetWidth = 56
+    $presetGap = 5
     for ($i = 0; $i -lt $presetValues.Count; $i++) {
         $value = [int]$presetValues[$i]
         $button = New-Object System.Windows.Forms.Button
         $button.Text = "$value%"
         $button.Tag = $value
         $button.Size = New-Object System.Drawing.Size($presetWidth, 26)
-        $button.Location = New-Object System.Drawing.Point(($presetStartX + ($i * 72)), 146)
+        $button.Location = New-Object System.Drawing.Point((18 + ($i * ($presetWidth + $presetGap))), 146)
         $button.Add_Click({
             param($sender, $eventArgs)
             $radioPercent.Checked = $true
@@ -337,18 +479,19 @@ function Show-SpeedWindow {
         $groupSpeed.Controls.Add($button)
     }
 
-    $groupPitch = New-Object System.Windows.Forms.GroupBox
-    $groupPitch.Text = 'Pitch'
-    $groupPitch.Location = New-Object System.Drawing.Point(18, 246)
-    $groupPitch.Size = New-Object System.Drawing.Size(524, 55)
-    $form.Controls.Add($groupPitch)
+    $groupAudio = New-Object System.Windows.Forms.GroupBox
+    $groupAudio.Text = 'Audio'
+    $groupAudio.Location = New-Object System.Drawing.Point(18, 246)
+    $groupAudio.Size = New-Object System.Drawing.Size(524, 55)
+    $form.Controls.Add($groupAudio)
 
     $checkKeepPitch = New-Object System.Windows.Forms.CheckBox
-    $checkKeepPitch.Text = 'Keep original pitch'
+    $checkKeepPitch.Text = 'Keep original audio pitch'
     $checkKeepPitch.Checked = $true
     $checkKeepPitch.Location = New-Object System.Drawing.Point(18, 22)
-    $checkKeepPitch.Size = New-Object System.Drawing.Size(180, 24)
-    $groupPitch.Controls.Add($checkKeepPitch)
+    $checkKeepPitch.Size = New-Object System.Drawing.Size(220, 24)
+    $checkKeepPitch.Enabled = $HasAudio
+    $groupAudio.Controls.Add($checkKeepPitch)
 
     $labelResult = New-Object System.Windows.Forms.Label
     $labelResult.Location = New-Object System.Drawing.Point(20, 312)
@@ -356,14 +499,14 @@ function Show-SpeedWindow {
     $form.Controls.Add($labelResult)
 
     $buttonPreview = New-Object System.Windows.Forms.Button
-    $buttonPreview.Text = 'Preview 5s'
+    $buttonPreview.Text = 'Preview 10s'
     $buttonPreview.Location = New-Object System.Drawing.Point(20, 366)
     $buttonPreview.Size = New-Object System.Drawing.Size(104, 28)
     $form.Controls.Add($buttonPreview)
 
     $labelPreview = New-Object System.Windows.Forms.Label
     $labelPreview.Location = New-Object System.Drawing.Point(136, 370)
-    $labelPreview.Size = New-Object System.Drawing.Size(160, 20)
+    $labelPreview.Size = New-Object System.Drawing.Size(190, 20)
     $form.Controls.Add($labelPreview)
 
     $buttonOK = New-Object System.Windows.Forms.Button
@@ -388,32 +531,6 @@ function Show-SpeedWindow {
         $textDuration.Enabled = $radioDuration.Checked
     }
 
-    function Stop-Preview {
-        try {
-            if ($script:previewTimer) {
-                $script:previewTimer.Stop()
-                $script:previewTimer.Dispose()
-                $script:previewTimer = $null
-            }
-        }
-        catch {}
-
-        try {
-            if ($script:previewPlayer) {
-                $script:previewPlayer.Stop()
-                $script:previewPlayer.Dispose()
-                $script:previewPlayer = $null
-            }
-        }
-        catch {}
-
-        Remove-PartialOutput -Path $script:previewFile
-        $script:previewFile = $null
-        $script:isPreviewPlaying = $false
-        $buttonPreview.Text = 'Preview 5s'
-        $labelPreview.Text = ''
-    }
-
     function Try-GetCurrentSpeedConfig {
         $percentText = $textPercent.Text.Trim().Replace(',', '.')
         $percent = 0.0
@@ -421,8 +538,8 @@ function Show-SpeedWindow {
             throw 'Enter a valid speed percentage before previewing.'
         }
 
-        if ($percent -lt 25.0 -or $percent -gt 800.0) {
-            throw 'Speed must stay between 25% and 800%.'
+        if ($percent -lt 25.0 -or $percent -gt 400.0) {
+            throw 'Speed must stay between 25% and 400%.'
         }
 
         return [PSCustomObject]@{
@@ -432,13 +549,11 @@ function Show-SpeedWindow {
     }
 
     function Start-Preview {
-        Stop-Preview
-
         try {
             $config = Try-GetCurrentSpeedConfig
-            $previewSeconds = [Math]::Min(5.0, [Math]::Max(0.5, $OriginalDurationSeconds))
-            $previewPath = Join-Path ([System.IO.Path]::GetTempPath()) ('ffactions_speed_preview_{0}.wav' -f ([System.Guid]::NewGuid().ToString('N')))
-            $args = Get-PreviewAudioArguments -InputFile $InputFile -OutputFile $previewPath -SpeedFactor $config.SpeedFactor -KeepPitch $config.KeepPitch -SampleRate $SampleRate -PreviewSeconds $previewSeconds
+            $previewSeconds = [Math]::Min(10.0, [Math]::Max(0.5, $OriginalDurationSeconds))
+            $previewPath = Join-Path ([System.IO.Path]::GetTempPath()) ('ffactions_video_speed_preview_{0}.mp4' -f ([System.Guid]::NewGuid().ToString('N')))
+            $args = Get-PreviewVideoArguments -InputFile $InputFile -OutputFile $previewPath -SpeedFactor $config.SpeedFactor -KeepPitch $config.KeepPitch -HasAudio $HasAudio -SampleRate $SampleRate -PreviewSeconds $previewSeconds
 
             $buttonPreview.Enabled = $false
             $labelPreview.Text = 'Preparing preview...'
@@ -446,26 +561,16 @@ function Show-SpeedWindow {
 
             $result = Invoke-HiddenProcess -FilePath $FfmpegPath -Arguments $args
             if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $previewPath)) {
-                Remove-PartialOutput -Path $previewPath
+                Remove-FileIfExists -Path $previewPath
                 throw (Get-ShortErrorText -StdErr $result.StdErr)
             }
 
+            Remove-FileIfExists -Path $script:previewFile
             $script:previewFile = $previewPath
-            $script:previewPlayer = New-Object System.Media.SoundPlayer($previewPath)
-            $script:previewPlayer.Play()
-            $script:isPreviewPlaying = $true
-            $buttonPreview.Text = 'Stop preview'
-            $labelPreview.Text = 'Playing preview'
-
-            $script:previewTimer = New-Object System.Windows.Forms.Timer
-            $script:previewTimer.Interval = [Math]::Max(750, [int][Math]::Ceiling($previewSeconds * 1000.0))
-            $script:previewTimer.Add_Tick({
-                Stop-Preview
-            })
-            $script:previewTimer.Start()
+            Start-Process -FilePath $previewPath | Out-Null
+            $labelPreview.Text = 'Preview opened'
         }
         catch {
-            Stop-Preview
             $labelPreview.Text = ''
             [System.Windows.Forms.MessageBox]::Show(
                 $_.Exception.Message,
@@ -523,11 +628,6 @@ function Show-SpeedWindow {
                 $script:syncing = $false
             }
 
-            if ($speedFactor -le 0) {
-                $labelResult.Text = 'Invalid speed value.'
-                return
-            }
-
             $labelResult.Text = 'New duration: ' + (Format-SecondsForDisplay -Seconds $targetDuration) + '    Speed factor: x' + $speedFactor.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture)
         }
         catch {
@@ -547,19 +647,16 @@ function Show-SpeedWindow {
 
     $textPercent.Add_TextChanged({
         if (-not $radioPercent.Checked) { return }
-        if ($script:isPreviewPlaying) { Stop-Preview }
         Update-ResultLabel
     })
 
     $textDuration.Add_TextChanged({
         if (-not $radioDuration.Checked) { return }
-        if ($script:isPreviewPlaying) { Stop-Preview }
         Update-ResultLabel
     })
 
     $trackSpeed.Add_ValueChanged({
         if ($script:syncing) { return }
-        if ($script:isPreviewPlaying) { Stop-Preview }
         $radioPercent.Checked = $true
         $script:syncing = $true
         $textPercent.Text = Format-PercentValue $trackSpeed.Value
@@ -567,32 +664,7 @@ function Show-SpeedWindow {
         Update-ResultLabel
     })
 
-    $checkKeepPitch.Add_CheckedChanged({
-        if ($script:isPreviewPlaying) { Stop-Preview }
-    })
-
-    $buttonPreview.Add_Click({
-        if ($script:isPreviewPlaying) {
-            Stop-Preview
-        }
-        else {
-            Start-Preview
-        }
-    })
-
-    $form.Add_KeyDown({
-        param($sender, $eventArgs)
-        if ($eventArgs.KeyCode -eq [System.Windows.Forms.Keys]::Escape) {
-            if ($script:isPreviewPlaying) {
-                Stop-Preview
-                $eventArgs.Handled = $true
-            }
-        }
-    })
-
-    $form.Add_FormClosing({
-        Stop-Preview
-    })
+    $buttonPreview.Add_Click({ Start-Preview })
 
     $textPercent.Text = '100'
     $textDuration.Text = Format-SecondsForDisplay -Seconds $OriginalDurationSeconds
@@ -607,9 +679,6 @@ function Show-SpeedWindow {
     }
 
     try {
-        $speedFactor = 1.0
-        $targetDuration = $OriginalDurationSeconds
-
         if ($radioPercent.Checked) {
             $percent = [double]::Parse($textPercent.Text.Trim().Replace(',', '.'), [System.Globalization.CultureInfo]::InvariantCulture)
             if ($percent -le 0) { throw 'Speed percentage must be greater than 0.' }
@@ -622,13 +691,13 @@ function Show-SpeedWindow {
             $speedFactor = $OriginalDurationSeconds / $targetDuration
         }
 
-        if ($speedFactor -lt 0.25 -or $speedFactor -gt 8.0) {
-            throw 'Speed must stay between 25% and 800%.'
+        if ($speedFactor -lt 0.25 -or $speedFactor -gt 4.0) {
+            throw 'Speed must stay between 25% and 400%.'
         }
 
         $payload = [PSCustomObject]@{
-            SpeedFactor      = $speedFactor
-            TargetDuration   = $targetDuration
+            SpeedFactor       = $speedFactor
+            TargetDuration    = $targetDuration
             KeepOriginalPitch = [bool]$checkKeepPitch.Checked
         }
 
@@ -638,8 +707,7 @@ function Show-SpeedWindow {
     catch {
         $message = $_.Exception.Message
         $form.Dispose()
-        Show-Error $message
-        exit 1
+        Show-ErrorAndExit $message
     }
 }
 
@@ -647,30 +715,26 @@ function Show-SpeedWindow {
 
 try {
     if (-not (Test-Path -LiteralPath $InputFile)) {
-        Show-Error 'Input file not found.'
-        exit 1
+        Show-ErrorAndExit 'Input file not found.'
     }
 
     $extension = [System.IO.Path]::GetExtension($InputFile).ToLowerInvariant()
-    if ($extension -notin @('.wav', '.mp3', '.flac', '.m4a', '.ogg')) {
-        Show-Error 'Unsupported input format. Only .wav, .mp3, .flac, .m4a and .ogg are supported.'
-        exit 1
+    if ($extension -notin @('.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v')) {
+        Show-ErrorAndExit 'Unsupported input format. Only .mp4, .mkv, .avi, .mov, .webm and .m4v are supported.'
     }
 
     $ffmpegPath = Get-ToolPath -ToolName 'ffmpeg.exe'
     $ffprobePath = Get-ToolPath -ToolName 'ffprobe.exe'
 
     if (-not (Test-Path -LiteralPath $ffmpegPath)) {
-        Show-Error 'ffmpeg.exe not found.'
-        exit 1
+        Show-ErrorAndExit 'ffmpeg.exe not found.'
     }
     if (-not (Test-Path -LiteralPath $ffprobePath)) {
-        Show-Error 'ffprobe.exe not found.'
-        exit 1
+        Show-ErrorAndExit 'ffprobe.exe not found.'
     }
 
-    $audioInfo = Get-AudioInfo -FfprobePath $ffprobePath -FilePath $InputFile
-    $speedConfig = Show-SpeedWindow -OriginalDurationSeconds $audioInfo.DurationSeconds -InputFile $InputFile -FfmpegPath $ffmpegPath -SampleRate $audioInfo.SampleRate
+    $videoInfo = Get-VideoInfo -FfprobePath $ffprobePath -FilePath $InputFile
+    $speedConfig = Show-SpeedWindow -OriginalDurationSeconds $videoInfo.DurationSeconds -InputFile $InputFile -FfmpegPath $ffmpegPath -HasAudio $videoInfo.HasAudio -SampleRate $videoInfo.SampleRate
     if ($null -eq $speedConfig) {
         exit 0
     }
@@ -678,25 +742,23 @@ try {
     $inputDir = Split-Path -Parent $InputFile
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($InputFile)
     $speedPercent = [int][Math]::Round($speedConfig.SpeedFactor * 100.0)
-    $desiredOutput = Join-Path $inputDir ($baseName + '_speed_' + $speedPercent + 'pct' + $extension)
+    $desiredOutput = Join-Path $inputDir ($baseName + '_video_speed_' + $speedPercent + 'pct' + $extension)
     $outputFile = Get-UniqueOutputPath -DesiredPath $desiredOutput
 
-    $ffmpegArgs = Get-FinalAudioArguments -InputFile $InputFile -OutputFile $outputFile -Extension $extension -SpeedFactor $speedConfig.SpeedFactor -KeepPitch $speedConfig.KeepOriginalPitch -SampleRate $audioInfo.SampleRate
-    $result = Invoke-FFmpegWithProgress -FfmpegPath $ffmpegPath -Arguments $ffmpegArgs -DurationSeconds $speedConfig.TargetDuration -OutputFile $outputFile -Title 'Change audio speed' -StatusText 'Processing audio speed...' -ModeLabel 'Audio'
+    $ffmpegArgs = Get-VideoSpeedArguments -InputFile $InputFile -OutputFile $outputFile -Extension $extension -SpeedFactor $speedConfig.SpeedFactor -KeepPitch $speedConfig.KeepOriginalPitch -HasAudio $videoInfo.HasAudio -SampleRate $videoInfo.SampleRate
+    $result = Invoke-FFmpegWithProgress -FfmpegPath $ffmpegPath -Arguments $ffmpegArgs -DurationSeconds $speedConfig.TargetDuration -OutputFile $outputFile -Title 'Change video speed' -StatusText 'Processing video speed...' -ModeLabel 'Video'
 
     if ($result.Cancelled) {
         exit 0
     }
 
     if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $outputFile)) {
-        Remove-PartialOutput -Path $outputFile
-        Show-Error (Get-ShortErrorText -StdErr $result.StdErr)
-        exit 1
+        Remove-FileIfExists -Path $outputFile
+        Show-ErrorAndExit (Get-ShortErrorText -StdErr $result.StdErr)
     }
 
     exit 0
 }
 catch {
-    Show-Error $_.Exception.Message
-    exit 1
+    Show-ErrorAndExit $_.Exception.Message
 }

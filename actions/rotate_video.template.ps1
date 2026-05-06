@@ -6,167 +6,6 @@ param(
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-function Show-ErrorAndExit {
-    param([string]$Message)
-
-    [System.Windows.Forms.MessageBox]::Show(
-        $Message,
-        'FFActions - Error',
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
-    ) | Out-Null
-    exit 1
-}
-
-function Get-AppRoot {
-    $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-    $exeDir = Split-Path -Parent $exePath
-    return Split-Path -Parent $exeDir
-}
-
-function Get-ToolPath {
-    param([Parameter(Mandatory = $true)][string]$ToolName)
-
-    $appRoot = Get-AppRoot
-    return Join-Path $appRoot "tools\ffmpeg\$ToolName"
-}
-
-function Quote-ProcessArgument {
-    param([string]$Value)
-
-    if ($null -eq $Value -or $Value -eq '') {
-        return '""'
-    }
-
-    if ($Value -notmatch '[\s"]') {
-        return $Value
-    }
-
-    $escaped = $Value -replace '(\\*)"', '$1$1\\"'
-    $escaped = $escaped -replace '(\\+)$', '$1$1'
-    return '"' + $escaped + '"'
-}
-
-function Join-ProcessArguments {
-    param([string[]]$Arguments)
-
-    $quoted = foreach ($arg in $Arguments) {
-        Quote-ProcessArgument $arg
-    }
-
-    return ($quoted -join ' ')
-}
-
-function Invoke-HiddenProcess {
-    param(
-        [Parameter(Mandatory = $true)][string]$FilePath,
-        [Parameter(Mandatory = $true)][string[]]$Arguments
-    )
-
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $FilePath
-    $psi.Arguments = Join-ProcessArguments $Arguments
-    $psi.UseShellExecute = $false
-    $psi.CreateNoWindow = $true
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $psi
-
-    [void]$process.Start()
-
-    $stdOut = $process.StandardOutput.ReadToEnd()
-    $stdErr = $process.StandardError.ReadToEnd()
-
-    $process.WaitForExit()
-    $exitCode = $process.ExitCode
-    $process.Dispose()
-
-    return [PSCustomObject]@{
-        ExitCode = $exitCode
-        StdOut   = $stdOut
-        StdErr   = $stdErr
-    }
-}
-
-function Get-MediaDurationSeconds {
-    param(
-        [Parameter(Mandatory = $true)][string]$FfprobePath,
-        [Parameter(Mandatory = $true)][string]$InputPath
-    )
-
-    $probeResult = Invoke-HiddenProcess -FilePath $FfprobePath -Arguments @(
-        '-v', 'error',
-        '-show_entries', 'format=duration',
-        '-of', 'default=nokey=1:noprint_wrappers=1',
-        $InputPath
-    )
-
-    if ($probeResult.ExitCode -ne 0) {
-        $probeErr = $probeResult.StdErr.Trim()
-        if ([string]::IsNullOrWhiteSpace($probeErr)) {
-            $probeErr = 'ffprobe failed.'
-        }
-        throw $probeErr
-    }
-
-    $durationText = $probeResult.StdOut.Trim()
-    if ([string]::IsNullOrWhiteSpace($durationText)) {
-        throw 'Unable to detect media duration.'
-    }
-
-    $duration = [double]::Parse($durationText.Replace(',', '.'), [System.Globalization.CultureInfo]::InvariantCulture)
-    if ($duration -le 0) {
-        throw 'Invalid media duration.'
-    }
-
-    return $duration
-}
-
-function Get-UniqueOutputPath {
-    param([Parameter(Mandatory = $true)][string]$DesiredPath)
-
-    if (-not (Test-Path -LiteralPath $DesiredPath)) {
-        return $DesiredPath
-    }
-
-    $dir = Split-Path -Parent $DesiredPath
-    $base = [System.IO.Path]::GetFileNameWithoutExtension($DesiredPath)
-    $ext = [System.IO.Path]::GetExtension($DesiredPath)
-
-    for ($i = 1; $i -le 999; $i++) {
-        $candidate = Join-Path $dir ("{0}_{1:D3}{2}" -f $base, $i, $ext)
-        if (-not (Test-Path -LiteralPath $candidate)) {
-            return $candidate
-        }
-    }
-
-    throw 'Unable to create a unique output filename.'
-}
-
-function Remove-PartialOutput {
-    param([string]$Path)
-
-    if ([string]::IsNullOrWhiteSpace($Path)) { return }
-    if (Test-Path -LiteralPath $Path) {
-        try { Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue } catch {}
-    }
-}
-
-function Get-ShortErrorText {
-    param([string]$StdErr)
-
-    if (-not [string]::IsNullOrWhiteSpace($StdErr)) {
-        $firstLines = ($StdErr -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | Select-Object -First 12) -join "`r`n"
-        if (-not [string]::IsNullOrWhiteSpace($firstLines)) {
-            return $firstLines
-        }
-    }
-
-    return 'FFmpeg failed during video transform.'
-}
-
 function New-PreviewBitmap {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -781,34 +620,41 @@ function New-RotateVideoArguments {
 #__FFCOMMON_INJECT_HERE__
 
 if ([string]::IsNullOrWhiteSpace($InputFile)) {
-    Show-ErrorAndExit 'No input file received.'
+    Show-Error 'No input file received.'
+    exit 1
 }
 
 if (-not (Test-Path -LiteralPath $InputFile)) {
-    Show-ErrorAndExit "Input file not found.`n$InputFile"
+    Show-Error "Input file not found.`n$InputFile"
+    exit 1
 }
 
 $extension = [System.IO.Path]::GetExtension($InputFile).ToLowerInvariant()
 if ($extension -notin @('.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v')) {
-    Show-ErrorAndExit 'Unsupported file format. Supported: .mp4, .mkv, .avi, .mov, .webm, .m4v'
+    Show-Error 'Unsupported file format. Supported: .mp4, .mkv, .avi, .mov, .webm, .m4v'
+    exit 1
 }
 
 $ffmpegPath = Get-ToolPath -ToolName 'ffmpeg.exe'
 $ffprobePath = Get-ToolPath -ToolName 'ffprobe.exe'
 
 if (-not (Test-Path -LiteralPath $ffmpegPath)) {
-    Show-ErrorAndExit "ffmpeg.exe not found.`n$ffmpegPath"
+    Show-Error "ffmpeg.exe not found.`n$ffmpegPath"
+    exit 1
 }
 
 if (-not (Test-Path -LiteralPath $ffprobePath)) {
-    Show-ErrorAndExit "ffprobe.exe not found.`n$ffprobePath"
+    Show-Error "ffprobe.exe not found.`n$ffprobePath"
+    exit 1
 }
 
 try {
-    $durationSeconds = Get-MediaDurationSeconds -FfprobePath $ffprobePath -InputPath $InputFile
+    $videoInfo = Get-VideoInfo -FfprobePath $ffprobePath -FilePath $InputFile
+    $durationSeconds = [double]$videoInfo.DurationSeconds
 }
 catch {
-    Show-ErrorAndExit $_.Exception.Message
+    Show-Error $_.Exception.Message
+    exit 1
 }
 
 $transform = Show-RotateVideoWindow -VideoPath $InputFile -FfmpegPath $ffmpegPath -DurationSeconds $durationSeconds
@@ -836,8 +682,9 @@ if ($result.Cancelled) {
 
 if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $script:OutputFile)) {
     Remove-PartialOutput -Path $script:OutputFile
-    $errorText = Get-ShortErrorText -StdErr $result.StdErr
-    Show-ErrorAndExit $errorText
+    $errorText = Get-ShortErrorText -StdErr $result.StdErr -FallbackMessage 'FFmpeg failed during video transform.'
+    Show-Error $errorText
+    exit 1
 }
 
 exit 0

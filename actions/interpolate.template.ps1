@@ -2,12 +2,6 @@ param (
     [string]$inputFile
 )
 
-function Get-AppRoot {
-    $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-    $exeDir = Split-Path -Parent $exePath
-    return Split-Path -Parent $exeDir
-}
-
 function Show-ErrorAndExit {
     param([string]$Message)
     [System.Windows.Forms.MessageBox]::Show(
@@ -22,86 +16,6 @@ function Show-ErrorAndExit {
 function Get-DecimalString {
     param([double]$Value)
     return $Value.ToString("0.###", [System.Globalization.CultureInfo]::InvariantCulture)
-}
-
-function Quote-ProcessArgument {
-    param([string]$Value)
-
-    if ($null -eq $Value) {
-        return '""'
-    }
-
-    if ($Value -eq "") {
-        return '""'
-    }
-
-    if ($Value -notmatch '[\s"]') {
-        return $Value
-    }
-
-    $escaped = $Value -replace '(\\*)"', '$1$1\"'
-    $escaped = $escaped -replace '(\\+)$', '$1$1'
-    return '"' + $escaped + '"'
-}
-
-function Join-ProcessArguments {
-    param([string[]]$Arguments)
-
-    $quoted = foreach ($arg in $Arguments) {
-        Quote-ProcessArgument $arg
-    }
-
-    return ($quoted -join ' ')
-}
-
-function Invoke-HiddenProcess {
-    param(
-        [Parameter(Mandatory = $true)][string]$FilePath,
-        [Parameter(Mandatory = $true)][string[]]$Arguments
-    )
-
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $FilePath
-    $psi.Arguments = Join-ProcessArguments $Arguments
-    $psi.UseShellExecute = $false
-    $psi.CreateNoWindow = $true
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $psi
-
-    [void]$process.Start()
-
-    $stdOut = $process.StandardOutput.ReadToEnd()
-    $stdErr = $process.StandardError.ReadToEnd()
-
-    $process.WaitForExit()
-
-    return [PSCustomObject]@{
-        ExitCode = $process.ExitCode
-        StdOut   = $stdOut
-        StdErr   = $stdErr
-    }
-}
-
-function Convert-FFmpegTimeToSeconds {
-    param([string]$Value)
-
-    if ([string]::IsNullOrWhiteSpace($Value)) {
-        return $null
-    }
-
-    $trimmed = $Value.Trim()
-
-    if ($trimmed -match '^(\d+):(\d+):(\d+(?:[\.,]\d+)?)$') {
-        $hours = [double]::Parse($matches[1], [System.Globalization.CultureInfo]::InvariantCulture)
-        $minutes = [double]::Parse($matches[2], [System.Globalization.CultureInfo]::InvariantCulture)
-        $seconds = [double]::Parse($matches[3].Replace(',', '.'), [System.Globalization.CultureInfo]::InvariantCulture)
-        return ($hours * 3600.0) + ($minutes * 60.0) + $seconds
-    }
-
-    return $null
 }
 
 function Get-MediaDurationSeconds {

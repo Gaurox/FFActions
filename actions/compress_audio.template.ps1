@@ -6,92 +6,7 @@ param(
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-function Show-ErrorAndExit {
-    param([string]$Message)
-
-    [System.Windows.Forms.MessageBox]::Show(
-        $Message,
-        'FFActions - Error',
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
-    ) | Out-Null
-
-    exit 1
-}
-
-function Get-AppRoot {
-    $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-    $exeDir = Split-Path -Parent $exePath
-    return Split-Path -Parent $exeDir
-}
-
-function Get-ToolPath {
-    param([Parameter(Mandatory = $true)][string]$ToolName)
-
-    $appRoot = Get-AppRoot
-    return Join-Path $appRoot "tools\ffmpeg\$ToolName"
-}
-
-function Quote-ProcessArgument {
-    param([string]$Value)
-
-    if ($null -eq $Value -or $Value -eq '') {
-        return '""'
-    }
-
-    if ($Value -notmatch '[\s"]') {
-        return $Value
-    }
-
-    $escaped = $Value -replace '(\\*)"', '$1$1\\"'
-    $escaped = $escaped -replace '(\\+)$', '$1$1'
-    return '"' + $escaped + '"'
-}
-
-function Join-ProcessArguments {
-    param([string[]]$Arguments)
-
-    $quoted = foreach ($arg in $Arguments) {
-        Quote-ProcessArgument $arg
-    }
-
-    return ($quoted -join ' ')
-}
-
-function Invoke-HiddenProcess {
-    param(
-        [Parameter(Mandatory = $true)][string]$FilePath,
-        [Parameter(Mandatory = $true)][string[]]$Arguments
-    )
-
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $FilePath
-    $psi.Arguments = Join-ProcessArguments $Arguments
-    $psi.UseShellExecute = $false
-    $psi.CreateNoWindow = $true
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $psi
-
-    [void]$process.Start()
-
-    $stdOut = $process.StandardOutput.ReadToEnd()
-    $stdErr = $process.StandardError.ReadToEnd()
-
-    $process.WaitForExit()
-    $exitCode = $process.ExitCode
-    $process.Dispose()
-
-    return [PSCustomObject]@{
-        ExitCode = $exitCode
-        StdOut   = $stdOut
-        StdErr   = $stdErr
-    }
-}
-
-function Get-AudioInfo {
+function Get-CompressAudioInfo {
     param(
         [Parameter(Mandatory = $true)][string]$FfprobePath,
         [Parameter(Mandatory = $true)][string]$FilePath
@@ -145,35 +60,6 @@ function Get-AudioInfo {
     }
 }
 
-function Get-UniqueOutputPath {
-    param([Parameter(Mandatory = $true)][string]$DesiredPath)
-
-    if (-not (Test-Path -LiteralPath $DesiredPath)) {
-        return $DesiredPath
-    }
-
-    $dir = Split-Path -Parent $DesiredPath
-    $base = [System.IO.Path]::GetFileNameWithoutExtension($DesiredPath)
-    $ext = [System.IO.Path]::GetExtension($DesiredPath)
-
-    for ($i = 1; $i -le 999; $i++) {
-        $candidate = Join-Path $dir ("{0}_{1:D3}{2}" -f $base, $i, $ext)
-        if (-not (Test-Path -LiteralPath $candidate)) {
-            return $candidate
-        }
-    }
-
-    throw 'Unable to create a unique output filename.'
-}
-
-function Remove-PartialOutput {
-    param([string]$Path)
-
-    if ([string]::IsNullOrWhiteSpace($Path)) { return }
-    if (Test-Path -LiteralPath $Path) {
-        try { Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue } catch {}
-    }
-}
 
 function Format-FileSize([long]$Bytes) {
     if ($Bytes -ge 1GB) {
@@ -192,19 +78,6 @@ function Get-PresetLabel([string]$PresetKey) {
         'small'    { return 'small' }
         default    { return 'custom' }
     }
-}
-
-function Get-ShortErrorText {
-    param([string]$StdErr)
-
-    if (-not [string]::IsNullOrWhiteSpace($StdErr)) {
-        $firstLines = ($StdErr -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | Select-Object -First 12) -join "`r`n"
-        if (-not [string]::IsNullOrWhiteSpace($firstLines)) {
-            return $firstLines
-        }
-    }
-
-    return 'FFmpeg failed during audio compression.'
 }
 
 function Get-PresetEncodingProfile {
@@ -519,31 +392,36 @@ function Show-CompressAudioWindow {
 
 try {
     if ([string]::IsNullOrWhiteSpace($InputFile)) {
-        Show-ErrorAndExit 'Input file is missing.'
+        Show-Error 'Input file is missing.'
+        exit 1
     }
 
     if (-not (Test-Path -LiteralPath $InputFile)) {
-        Show-ErrorAndExit 'Input file not found.'
+        Show-Error 'Input file not found.'
+        exit 1
     }
 
     $sourceExtension = [System.IO.Path]::GetExtension($InputFile).ToLowerInvariant()
     if ($sourceExtension -eq '.wave') { $sourceExtension = '.wav' }
     if ($sourceExtension -notin @('.mp3', '.wav', '.flac', '.m4a', '.ogg')) {
-        Show-ErrorAndExit 'Unsupported input format. Only .mp3, .wav, .flac, .m4a and .ogg are supported.'
+        Show-Error 'Unsupported input format. Only .mp3, .wav, .flac, .m4a and .ogg are supported.'
+        exit 1
     }
 
     $ffmpeg = Get-ToolPath 'ffmpeg.exe'
     $ffprobe = Get-ToolPath 'ffprobe.exe'
 
     if (-not (Test-Path -LiteralPath $ffmpeg)) {
-        Show-ErrorAndExit 'ffmpeg.exe not found.'
+        Show-Error 'ffmpeg.exe not found.'
+        exit 1
     }
 
     if (-not (Test-Path -LiteralPath $ffprobe)) {
-        Show-ErrorAndExit 'ffprobe.exe not found.'
+        Show-Error 'ffprobe.exe not found.'
+        exit 1
     }
 
-    $audioInfo = Get-AudioInfo -FfprobePath $ffprobe -FilePath $InputFile
+    $audioInfo = Get-CompressAudioInfo -FfprobePath $ffprobe -FilePath $InputFile
     $sourceBytes = (Get-Item -LiteralPath $InputFile).Length
     $compressConfig = Show-CompressAudioWindow -SourceExtension $sourceExtension -SourceBytes $sourceBytes -AudioInfo $audioInfo
     if ($null -eq $compressConfig) {
@@ -580,7 +458,8 @@ try {
 
     if ($result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $script:OutputFile)) {
         Remove-PartialOutput -Path $script:OutputFile
-        Show-ErrorAndExit (Get-ShortErrorText -StdErr $result.StdErr)
+        Show-Error (Get-ShortErrorText -StdErr $result.StdErr -FallbackMessage 'FFmpeg failed during audio compression.')
+        exit 1
     }
 
     exit 0
@@ -588,5 +467,6 @@ try {
 catch {
     $message = $_.Exception.Message
     if ([string]::IsNullOrWhiteSpace($message)) { $message = 'Unknown audio compression error.' }
-    Show-ErrorAndExit $message
+    Show-Error $message
+    exit 1
 }
