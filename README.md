@@ -1,6 +1,6 @@
 # FFActions
 
-Version: `1.4.0`
+Version: `1.4.1`
 
 ---
 
@@ -10,7 +10,7 @@ FFActions is a Windows tool that adds simple right-click actions to quickly proc
 
 It is not meant to replace full editing, encoding, or retouching software. FFActions is designed for fast everyday operations, with simple interfaces and limited settings, so common tasks can be completed without opening a large application or navigating through advanced options.
 
-The general idea is intentionally simple: short dialogs, focused options, and output files created next to the original source file.
+The general idea is intentionally simple: short dialogs, focused options, and output files or folders created next to the original source file.
 
 ---
 
@@ -18,7 +18,7 @@ The general idea is intentionally simple: short dialogs, focused options, and ou
 
 FFActions integrates into the Windows context menu for supported video, audio, and image formats.
 
-Each command launches a standalone tool based on PowerShell and FFmpeg. Every operation creates a new file next to the source file and does not overwrite the original.
+Each command launches a standalone tool based on PowerShell and FFmpeg. Every operation creates a new file or folder next to the source file and does not overwrite the original.
 
 For format-based actions such as convert and audio extraction, FFActions now uses small picker windows instead of large nested format submenus. The installer rewires these entries directly to the picker executables so Explorer opens the compact button dialog immediately.
 
@@ -66,6 +66,12 @@ The installer offers these modules:
 - `Convert to icon` now supports more icon sizes with full-size preview coverage.
 - Updated the screenshots for `Image to PDF`, `Create GIF`, `Convert video`, `Convert audio`, `Rotate / flip image`, and `Rotate / flip video`.
 
+## Recent 1.4.1 updates
+
+- Added `Extract frames`, a direct video action that exports all frames into a new adjacent folder as full-resolution PNG files.
+- `Extract frames` uses the shared progress window with cancel support and does not open an extra settings dialog.
+- Updated the README and website feature lists to include `Extract frames`.
+
 ---
 
 # VIDEO FEATURES
@@ -103,6 +109,14 @@ Input formats: `mp4 mkv avi mov webm m4v`
 Output formats: `mp3 wav flac m4a ogg`
 
 ![Extract Audio](screenshots/ExtractAudio.jpg)
+
+## Extract Frames
+
+Export all video frames into a new folder placed next to the source video.
+
+The action creates a unique folder named like the source file with a `_frames` suffix, then writes full-resolution PNG files with standard compression and sequential numbering.
+
+Input formats: `mp4 mkv avi mov webm m4v`
 
 ## Create GIF
 
@@ -399,7 +413,7 @@ For full local builds, the project expects:
 Example to rebuild all local executables:
 
 ```powershell
-.\build_all.ps1 -Version 1.4.0
+.\build_all.ps1 -Version 1.4.1
 ```
 
 Example to build the installer after that:

@@ -3,7 +3,7 @@
 [Setup]
 AppName=FFActions
 AppId=FFActions
-AppVersion=1.4.0
+AppVersion=1.4.1
 DefaultDirName={autopf}\FFActions
 DefaultGroupName=FFActions
 OutputDir=.
@@ -37,6 +37,7 @@ Name: "video"; Description: "Video"; Types: complete custom
 Name: "video\cut_video"; Description: "Cut video"; Types: complete custom
 Name: "video\interpolate"; Description: "Interpolate"; Types: complete custom
 Name: "video\remove_audio"; Description: "Remove audio"; Types: complete custom
+Name: "video\extract_frames"; Description: "Extract frames"; Types: complete custom
 Name: "video\extract_audio"; Description: "Extract audio"; Types: complete custom
 Name: "video\create_gif"; Description: "Create GIF"; Types: complete custom
 Name: "video\resize_video"; Description: "Resize video"; Types: complete custom
@@ -74,6 +75,7 @@ Source: "actions\convert_to_mov.exe"; DestDir: "{app}\actions"; Flags: ignorever
 Source: "actions\convert_to_webm.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
 Source: "actions\convert_to_m4v.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\convert
 Source: "actions\remove_audio.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\remove_audio
+Source: "actions\extract_frames.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\extract_frames
 Source: "actions\extract_audio_to_mp3.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\extract_audio
 Source: "actions\extract_audio_to_wav.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\extract_audio
 Source: "actions\extract_audio_to_flac.exe"; DestDir: "{app}\actions"; Flags: ignoreversion; Components: video\extract_audio
@@ -126,9 +128,9 @@ Source: "tools\pdf\System.Runtime.CompilerServices.Unsafe.dll"; DestDir: "{app}\
 Source: "tools\pdf\System.Numerics.Vectors.dll"; DestDir: "{app}\tools\pdf"; Flags: ignoreversion; Components: image\image_to_pdf
 Source: "tools\pdf\System.Security.Cryptography.Pkcs.dll"; DestDir: "{app}\tools\pdf"; Flags: ignoreversion; Components: image\image_to_pdf
 
-Source: "tools\ffmpeg\ffmpeg.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\change_speed video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\convert image\compress image\flip image\crop image\icon
-Source: "tools\ffmpeg\ffprobe.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\change_speed video\crop_video video\rotate video\compress video\convert video\media_info audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert audio\media_info image\media_info
-Source: "tools\icons\ffactions.ico"; DestDir: "{app}\tools\icons"; DestName: "ffactions.ico"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_audio video\create_gif video\resize_video video\change_speed video\crop_video video\rotate video\compress video\convert video\media_info audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert audio\media_info image\resize_image image\image_to_pdf image\convert image\compress image\flip image\crop image\icon image\media_info
+Source: "tools\ffmpeg\ffmpeg.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_frames video\extract_audio video\create_gif video\resize_video video\change_speed video\crop_video video\rotate video\compress video\convert audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert image\convert image\compress image\flip image\crop image\icon
+Source: "tools\ffmpeg\ffprobe.exe"; DestDir: "{app}\tools\ffmpeg"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_frames video\extract_audio video\create_gif video\resize_video video\change_speed video\crop_video video\rotate video\compress video\convert video\media_info audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert audio\media_info image\media_info
+Source: "tools\icons\ffactions.ico"; DestDir: "{app}\tools\icons"; DestName: "ffactions.ico"; Flags: ignoreversion; Components: video\cut_video video\interpolate video\remove_audio video\extract_frames video\extract_audio video\create_gif video\resize_video video\change_speed video\crop_video video\rotate video\compress video\convert video\media_info audio\cut_audio audio\change_speed audio\reverse audio\compress audio\change_pitch audio\convert audio\media_info image\resize_image image\image_to_pdf image\convert image\compress image\flip image\crop image\icon image\media_info
 Source: "tools\icons\icones menus\change.pitch_audio_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: audio\change_pitch
 Source: "tools\icons\icones menus\change.speed_audio_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: video\change_speed audio\change_speed
 Source: "tools\icons\icones menus\compress_video_image_audio_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: video\compress audio\compress image\compress
@@ -137,6 +139,7 @@ Source: "tools\icons\icones menus\convert.icon_image_icon.ico"; DestDir: "{app}\
 Source: "tools\icons\icones menus\create.gif_video_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: video\create_gif
 Source: "tools\icons\icones menus\crop_video_image_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: video\crop_video image\crop
 Source: "tools\icons\icones menus\cut_video_audio_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: video\cut_video audio\cut_audio
+Source: "tools\icons\icones menus\extract.frames_video_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: video\extract_frames
 Source: "tools\icons\icones menus\extract.audio_video_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: video\extract_audio
 Source: "tools\icons\icones menus\image.to.pdf_image_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: image\image_to_pdf
 Source: "tools\icons\icones menus\interpolate_video_icon.ico"; DestDir: "{app}\tools\icons\icones menus"; Flags: ignoreversion; Components: video\interpolate
@@ -172,6 +175,7 @@ Type: files; Name: "{app}\actions\convert_to_mov.exe"
 Type: files; Name: "{app}\actions\convert_to_webm.exe"
 Type: files; Name: "{app}\actions\convert_to_m4v.exe"
 Type: files; Name: "{app}\actions\remove_audio.exe"
+Type: files; Name: "{app}\actions\extract_frames.exe"
 Type: files; Name: "{app}\actions\extract_audio_to_mp3.exe"
 Type: files; Name: "{app}\actions\extract_audio_to_wav.exe"
 Type: files; Name: "{app}\actions\extract_audio_to_flac.exe"
@@ -237,6 +241,7 @@ Type: files; Name: "{app}\tools\icons\icones menus\convert.icon_image_icon.ico"
 Type: files; Name: "{app}\tools\icons\icones menus\create.gif_video_icon.ico"
 Type: files; Name: "{app}\tools\icons\icones menus\crop_video_image_icon.ico"
 Type: files; Name: "{app}\tools\icons\icones menus\cut_video_audio_icon.ico"
+Type: files; Name: "{app}\tools\icons\icones menus\extract.frames_video_icon.ico"
 Type: files; Name: "{app}\tools\icons\icones menus\extract.audio_video_icon.ico"
 Type: files; Name: "{app}\tools\icons\icones menus\image.to.pdf_image_icon.ico"
 Type: files; Name: "{app}\tools\icons\icones menus\interpolate_video_icon.ico"
@@ -480,6 +485,7 @@ begin
   Result := AddComponentIfFileExists(Result, 'video\cut_video', 'actions\cut_video.exe');
   Result := AddComponentIfFileExists(Result, 'video\interpolate', 'actions\interpolate.exe');
   Result := AddComponentIfFileExists(Result, 'video\remove_audio', 'actions\remove_audio.exe');
+  Result := AddComponentIfFileExists(Result, 'video\extract_frames', 'actions\extract_frames.exe');
   Result := AddComponentIfFileExists(Result, 'video\extract_audio', 'actions\extract_audio_picker.exe');
   Result := AddComponentIfFileExists(Result, 'video\create_gif', 'actions\create_gif.exe');
   Result := AddComponentIfFileExists(Result, 'video\resize_video', 'actions\resize_video.exe');
@@ -619,6 +625,10 @@ begin
   else if MenuKey = 'remove_audio' then
   begin
     IconFileName := 'remove.audio_video_icon.ico';
+  end
+  else if MenuKey = 'extract_frames' then
+  begin
+    IconFileName := 'extract.frames_video_icon.ico';
   end
   else if MenuKey = 'extract_audio' then
   begin
@@ -952,6 +962,12 @@ begin
   begin
     ApplyActionMenuList(
       VideoExtensions, 'remove_audio', 'remove audio', 'remove_audio.exe', '', False);
+  end;
+
+  if WizardIsComponentSelected('video\extract_frames') then
+  begin
+    ApplyActionMenuList(
+      VideoExtensions, 'extract_frames', 'extract frames', 'extract_frames.exe', '', False);
   end;
 
   if WizardIsComponentSelected('video\create_gif') then

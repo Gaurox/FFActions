@@ -1,5 +1,5 @@
 param(
-    [string]$Version = '1.3.0',
+    [string]$Version = '1.4.1',
     [string]$Company = 'FFActions contributors',
     [string]$Product = 'FFActions'
 )
@@ -187,6 +187,13 @@ Build-Action `
     -OutputPs1    (Join-Path $base 'remove_audio.ps1') `
     -OutputExe    (Join-Path $base 'remove_audio.exe') `
     -Title        'FFActions - Remove Audio' `
+    -SharedNames  @('core', 'media', 'progress')
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'extract_frames.template.ps1') `
+    -OutputPs1    (Join-Path $base 'extract_frames.ps1') `
+    -OutputExe    (Join-Path $base 'extract_frames.exe') `
+    -Title        'FFActions - Extract Frames' `
     -SharedNames  @('core', 'media', 'progress')
 
 Build-Action `
