@@ -19,6 +19,7 @@ $base = Join-Path $repoRoot 'actions'
 $sharedOrder = @(
     [PSCustomObject]@{ Name = 'core';     Path = Join-Path $base '_shared\ffcommon_core.ps1' }
     [PSCustomObject]@{ Name = 'media';    Path = Join-Path $base '_shared\ffcommon_media.ps1' }
+    [PSCustomObject]@{ Name = 'pdf';      Path = Join-Path $base '_shared\ffcommon_pdf.ps1' }
     [PSCustomObject]@{ Name = 'progress'; Path = Join-Path $base '_shared\ffcommon_progress.ps1' }
     [PSCustomObject]@{ Name = 'picker';   Path = Join-Path $base '_shared\ffcommon_picker.ps1' }
 )
@@ -322,6 +323,13 @@ Invoke-GeneratedScriptBuild `
     -TemplateFile (Join-Path $base 'convert_image.template.ps1') `
     -OutputPs1    (Join-Path $base 'convert_image.ps1') `
     -SharedNames  @('core')
+
+Build-Action `
+    -TemplateFile (Join-Path $base 'image_to_pdf.template.ps1') `
+    -OutputPs1    (Join-Path $base 'image_to_pdf.ps1') `
+    -OutputExe    (Join-Path $base 'image_to_pdf.exe') `
+    -Title        'FFActions - Image to PDF' `
+    -SharedNames  @('core', 'pdf')
 
 Build-Action `
     -TemplateFile (Join-Path $base 'convert_image_picker.template.ps1') `

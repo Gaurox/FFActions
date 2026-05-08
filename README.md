@@ -1,6 +1,6 @@
 # FFActions
 
-Version: `1.3.0`
+Version: `1.4.0`
 
 ---
 
@@ -55,6 +55,17 @@ The installer offers these modules:
 - Improved WebP compatibility for `Convert to icon`, `Crop image`, `Rotate / flip image`, and `Resize image`.
 - Improved user-facing FFmpeg error messages for corrupted or unsupported files.
 
+## Recent 1.4.0 updates
+
+- Added a new visual `Image to PDF` action with page layout editing, crop, rotation, layering, print, and export.
+- `Image to PDF` is now the first image action presented in the documentation and the installer image module.
+- `Convert video` now includes profile-based conversion presets such as `Universal`, `Remux`, `Montage`, `Web / YouTube`, `Streaming light`, and `TV / USB`.
+- `Convert audio` now includes profile presets such as `Standard`, `High quality`, and `Small file`.
+- `Create GIF` now provides timeline range selection, frame preview, and looped GIF preview before export.
+- `Rotate / flip image` and `Rotate / flip video` now use the updated icon-based transform buttons.
+- `Convert to icon` now supports more icon sizes with full-size preview coverage.
+- Updated the screenshots for `Image to PDF`, `Create GIF`, `Convert video`, `Convert audio`, `Rotate / flip image`, and `Rotate / flip video`.
+
 ---
 
 # VIDEO FEATURES
@@ -95,7 +106,9 @@ Output formats: `mp3 wav flac m4a ogg`
 
 ## Create GIF
 
-Create a GIF from a video with simple presets for resolution, FPS and quality.
+Create a GIF from a video with visual range selection, frame preview, and a looped GIF preview before export.
+
+Options: drag range handles, live boundary frame preview, GIF preview, resolution presets, FPS presets `8 10 12 15 18 20`, quality presets
 
 Formats: `mp4 mkv avi mov webm m4v`
 
@@ -163,7 +176,9 @@ Formats: `mp4 mkv avi mov webm m4v` `mp3 wav flac m4a ogg` `png jpg jpeg webp bm
 
 Convert a video from one format to another.
 
-The action opens a small centered format picker with direct click buttons, then launches the conversion.
+The action opens a compact format picker with direct click buttons and conversion profiles.
+
+Profiles: `Universal Remux Montage Web / YouTube Streaming light TV / USB`
 
 Input/output formats: `mp4 mkv avi mov webm m4v`
 
@@ -185,7 +200,9 @@ Formats: `mp3 wav flac m4a ogg`
 
 Convert an audio file from one format to another.
 
-The action opens a small centered format picker with direct click buttons, then launches the conversion.
+The action opens a compact format picker with direct click buttons and quality profiles.
+
+Profiles: `Standard High quality Small file`
 
 Input/output formats: `mp3 wav flac m4a ogg`
 
@@ -230,6 +247,18 @@ Formats: `mp3 wav flac m4a ogg`
 ---
 
 # IMAGE FEATURES
+
+## Image to PDF
+
+Create a PDF from one or more images with a visual page layout editor.
+
+Options: add images, move, resize, rotate, crop, layer ordering, `Fit to page`, `Center`, `Print`, `Export`, page sizes `A4 A3 Custom`
+
+Input formats: `png jpg jpeg bmp`
+
+Output formats: `pdf`
+
+![Image to PDF](screenshots/image_to_pdf.gif)
 
 ## Resize Image
 
@@ -287,7 +316,7 @@ Formats: `png jpg jpeg webp bmp`
 
 Generate an `.ico` file from an image.
 
-Options: sizes `16 32 48 64 128 256`, modes `Fit Fill`, background `transparent white black`, dynamic size previews
+Options: sizes `16 20 24 32 40 48 64 128 256`, modes `Fit Fill`, background `transparent white black`, dynamic size previews
 
 Input formats: `png jpg jpeg webp bmp`
 
@@ -370,7 +399,7 @@ For full local builds, the project expects:
 Example to rebuild all local executables:
 
 ```powershell
-.\build_all.ps1 -Version 1.3.0
+.\build_all.ps1 -Version 1.4.0
 ```
 
 Example to build the installer after that:

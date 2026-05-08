@@ -140,17 +140,17 @@ function Show-IconWindow {
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
-    $form.ClientSize = New-Object System.Drawing.Size(760, 430)
+    $form.ClientSize = New-Object System.Drawing.Size(760, 582)
     $form.TopMost = $true
 
     $groupSizes = New-Object System.Windows.Forms.GroupBox
     $groupSizes.Text = 'Sizes'
     $groupSizes.Location = New-Object System.Drawing.Point(18, 16)
-    $groupSizes.Size = New-Object System.Drawing.Size(180, 232)
+    $groupSizes.Size = New-Object System.Drawing.Size(180, 316)
     $form.Controls.Add($groupSizes)
 
-    $sizeValues = @(16, 32, 48, 64, 128, 256)
-    $defaultSizes = @(16, 32, 48, 256)
+    $sizeValues = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
+    $defaultSizes = @($sizeValues)
     $sizeChecks = @()
     for ($i = 0; $i -lt $sizeValues.Count; $i++) {
         $value = [int]$sizeValues[$i]
@@ -211,7 +211,7 @@ function Show-IconWindow {
     $groupPreview = New-Object System.Windows.Forms.GroupBox
     $groupPreview.Text = 'Preview'
     $groupPreview.Location = New-Object System.Drawing.Point(420, 16)
-    $groupPreview.Size = New-Object System.Drawing.Size(322, 344)
+    $groupPreview.Size = New-Object System.Drawing.Size(322, 494)
     $form.Controls.Add($groupPreview)
 
     $previewTiles = @()
@@ -268,21 +268,21 @@ function Show-IconWindow {
     }
 
     $labelHint = New-Object System.Windows.Forms.Label
-    $labelHint.Location = New-Object System.Drawing.Point(20, 274)
+    $labelHint.Location = New-Object System.Drawing.Point(20, 356)
     $labelHint.Size = New-Object System.Drawing.Size(380, 48)
     $labelHint.Text = 'The ICO file will be created next to the original image.'
     $form.Controls.Add($labelHint)
 
     $buttonOK = New-Object System.Windows.Forms.Button
     $buttonOK.Text = 'OK'
-    $buttonOK.Location = New-Object System.Drawing.Point(556, 382)
+    $buttonOK.Location = New-Object System.Drawing.Point(556, 534)
     $buttonOK.Size = New-Object System.Drawing.Size(90, 28)
     $buttonOK.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($buttonOK)
 
     $buttonCancel = New-Object System.Windows.Forms.Button
     $buttonCancel.Text = 'Cancel'
-    $buttonCancel.Location = New-Object System.Drawing.Point(652, 382)
+    $buttonCancel.Location = New-Object System.Drawing.Point(652, 534)
     $buttonCancel.Size = New-Object System.Drawing.Size(90, 28)
     $buttonCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($buttonCancel)

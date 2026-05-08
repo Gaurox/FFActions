@@ -90,6 +90,37 @@ function New-FFmpegArguments {
     return ,$ffmpegArgs
 }
 
+function Test-HasAudioStream {
+    param(
+        [Parameter(Mandatory = $true)][string]$FfprobePath,
+        [Parameter(Mandatory = $true)][string]$FilePath
+    )
+
+    $probeResult = Invoke-HiddenProcess -FilePath $FfprobePath -Arguments @(
+        '-v', 'error',
+        '-select_streams', 'a',
+        '-show_entries', 'stream=index',
+        '-of', 'csv=p=0',
+        $FilePath
+    )
+
+    if ($probeResult.ExitCode -ne 0) {
+        if (-not [string]::IsNullOrWhiteSpace($probeResult.StdErr)) {
+            throw $probeResult.StdErr.Trim()
+        }
+
+        throw 'ffprobe failed to inspect audio streams.'
+    }
+
+    foreach ($line in ($probeResult.StdOut -split "`r?`n")) {
+        if (-not [string]::IsNullOrWhiteSpace($line)) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
 #__FFCOMMON_INJECT_HERE__
 
 try {
@@ -126,6 +157,11 @@ try {
 
     if (-not (Test-Path -LiteralPath $ffprobePath)) {
         Show-Error "ffprobe.exe not found:`r`n$ffprobePath"
+        exit 1
+    }
+
+    if (-not (Test-HasAudioStream -FfprobePath $ffprobePath -FilePath $fullInputPath)) {
+        Show-Error 'No audio track found in the selected video.'
         exit 1
     }
 

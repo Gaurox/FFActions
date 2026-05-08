@@ -178,6 +178,56 @@ function New-TransformedPreviewBitmap {
     return $preview
 }
 
+function Get-RotateFlipIconPath {
+    param([Parameter(Mandatory = $true)][string]$IconFileName)
+
+    return Join-Path (Get-AppRoot) ('tools\icons\rotate.filp.menu\' + $IconFileName)
+}
+
+function New-MenuIconBitmap {
+    param(
+        [Parameter(Mandatory = $true)][string]$IconFileName,
+        [int]$Size = 20
+    )
+
+    $iconPath = Get-RotateFlipIconPath -IconFileName $IconFileName
+    if (-not (Test-Path -LiteralPath $iconPath)) {
+        return $null
+    }
+
+    $sourceImage = $null
+    $scaledBitmap = $null
+    $graphics = $null
+
+    try {
+        if ([System.IO.Path]::GetExtension($iconPath).ToLowerInvariant() -eq '.ico') {
+            $icon = New-Object System.Drawing.Icon($iconPath, $Size, $Size)
+            try {
+                $sourceImage = $icon.ToBitmap()
+            }
+            finally {
+                $icon.Dispose()
+            }
+        }
+        else {
+            $sourceImage = [System.Drawing.Image]::FromFile($iconPath)
+        }
+
+        $scaledBitmap = New-Object System.Drawing.Bitmap($Size, $Size)
+        $graphics = [System.Drawing.Graphics]::FromImage($scaledBitmap)
+        $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+        $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+        $graphics.Clear([System.Drawing.Color]::Transparent)
+        $graphics.DrawImage($sourceImage, 0, 0, $Size, $Size)
+        return $scaledBitmap
+    }
+    finally {
+        if ($graphics) { $graphics.Dispose() }
+        if ($sourceImage) { $sourceImage.Dispose() }
+    }
+}
+
 function Show-RotateVideoWindow {
     param(
         [Parameter(Mandatory = $true)][string]$VideoPath,
@@ -195,6 +245,7 @@ function Show-RotateVideoWindow {
     $script:currentPreviewBitmap = $null
     $script:pendingPreviewSeconds = 0.0
     $script:currentPreviewSeconds = 0.0
+    $buttonIcons = New-Object System.Collections.Generic.List[System.IDisposable]
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'FFActions - Rotate / flip video'
@@ -221,7 +272,7 @@ function Show-RotateVideoWindow {
     $previewBox.Location = New-Object System.Drawing.Point(0, 0)
     $previewBox.Size = $previewPanel.Size
     $previewBox.BackColor = [System.Drawing.Color]::Transparent
-    $previewBox.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+    $previewBox.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::Zoom
     $previewPanel.Controls.Add($previewBox)
 
     $trackPreview = New-Object System.Windows.Forms.TrackBar
@@ -240,13 +291,13 @@ function Show-RotateVideoWindow {
     $form.Controls.Add($labelFrame)
 
     $buttonSpecs = @(
-        @{ Key = 'rotate90';  Glyph = '⟳'; X = 18;  Tooltip = 'Rotate 90 degrees clockwise' },
-        @{ Key = 'rotate270'; Glyph = '⟲'; X = 90;  Tooltip = 'Rotate 90 degrees counterclockwise' },
-        @{ Key = 'flip_h';    Glyph = '⇋'; X = 162; Tooltip = 'Mirror horizontally' },
-        @{ Key = 'flip_v';    Glyph = '⇅'; X = 234; Tooltip = 'Mirror vertically' }
+        @{ Key = 'rotate90';  Glyph = '⟳'; IconFile = 'Rotate.right_icon.ico';    X = 18;  Tooltip = 'Rotate 90 degrees clockwise' },
+        @{ Key = 'rotate270'; Glyph = '⟲'; IconFile = 'Rotate.left_icon.ico';     X = 66;  Tooltip = 'Rotate 90 degrees counterclockwise' },
+        @{ Key = 'flip_h';    Glyph = '⇋'; IconFile = 'flip.horizontal_icon.ico'; X = 114; Tooltip = 'Mirror horizontally' },
+        @{ Key = 'flip_v';    Glyph = '⇅'; IconFile = 'filp.vertical_icon.ico';   X = 162; Tooltip = 'Mirror vertically' }
     )
 
-    $buttonFont = New-Object System.Drawing.Font('Segoe UI Symbol', 20, [System.Drawing.FontStyle]::Regular)
+    $buttonFont = New-Object System.Drawing.Font('Segoe UI Symbol', 16, [System.Drawing.FontStyle]::Regular)
     $buttonTooltip = New-Object System.Windows.Forms.ToolTip
 
     $labelState = New-Object System.Windows.Forms.Label
@@ -322,11 +373,22 @@ function Show-RotateVideoWindow {
     foreach ($spec in $buttonSpecs) {
         $button = New-Object System.Windows.Forms.Button
         $button.Tag = $spec.Key
-        $button.Text = $spec.Glyph
-        $button.Font = $buttonFont
         $button.Location = New-Object System.Drawing.Point($spec.X, 570)
-        $button.Size = New-Object System.Drawing.Size(60, 36)
+        $button.Size = New-Object System.Drawing.Size(36, 36)
+        $button.TextImageRelation = [System.Windows.Forms.TextImageRelation]::ImageBeforeText
         $buttonTooltip.SetToolTip($button, $spec.Tooltip)
+
+        $iconBitmap = New-MenuIconBitmap -IconFileName $spec.IconFile
+        if ($iconBitmap) {
+            $button.Image = $iconBitmap
+            $button.ImageAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+            $buttonIcons.Add($iconBitmap) | Out-Null
+        }
+        else {
+            $button.Text = $spec.Glyph
+            $button.Font = $buttonFont
+        }
+
         $button.Add_Click({
             param($sender, $eventArgs)
             $key = [string]$sender.Tag
@@ -416,6 +478,9 @@ function Show-RotateVideoWindow {
     catch {
         Dispose-PreviewBitmaps
         $previewTimer.Dispose()
+        foreach ($buttonIcon in $buttonIcons) {
+            if ($buttonIcon) { $buttonIcon.Dispose() }
+        }
         $buttonFont.Dispose()
         $form.Dispose()
         Show-ErrorAndExit $_.Exception.Message
@@ -426,6 +491,9 @@ function Show-RotateVideoWindow {
     if ($result -ne [System.Windows.Forms.DialogResult]::OK) {
         Dispose-PreviewBitmaps
         $previewTimer.Dispose()
+        foreach ($buttonIcon in $buttonIcons) {
+            if ($buttonIcon) { $buttonIcon.Dispose() }
+        }
         $buttonFont.Dispose()
         $form.Dispose()
         return $null
@@ -434,6 +502,9 @@ function Show-RotateVideoWindow {
     if ($script:transformKeys.Count -eq 0) {
         Dispose-PreviewBitmaps
         $previewTimer.Dispose()
+        foreach ($buttonIcon in $buttonIcons) {
+            if ($buttonIcon) { $buttonIcon.Dispose() }
+        }
         $buttonFont.Dispose()
         $form.Dispose()
         Show-ErrorAndExit 'Apply at least one transform before validating.'
@@ -442,6 +513,9 @@ function Show-RotateVideoWindow {
     $payload = Get-TransformConfig -Keys $script:transformKeys.ToArray()
     Dispose-PreviewBitmaps
     $previewTimer.Dispose()
+    foreach ($buttonIcon in $buttonIcons) {
+        if ($buttonIcon) { $buttonIcon.Dispose() }
+    }
     $buttonFont.Dispose()
     $form.Dispose()
     return $payload

@@ -3,16 +3,16 @@
 }
 
 :root {
-  --bg: #f4f8f4;
+  --bg: #f4f8ff;
   --paper: #ffffff;
-  --text: #101510;
-  --muted: #4d5a50;
-  --line: #d8e5d9;
-  --dark: #071207;
-  --green: #2f9e44;
-  --green-dark: #18752c;
-  --green-soft: #e8f7ea;
-  --shadow: 0 18px 48px rgba(24, 117, 44, 0.12);
+  --text: #0f1930;
+  --muted: #52607b;
+  --line: #d7e3fb;
+  --dark: #0b1530;
+  --green: #84b3ff;
+  --green-dark: #3b74e0;
+  --green-soft: #eaf2ff;
+  --shadow: 0 18px 48px rgba(59, 116, 224, 0.14);
 }
 
 html {
@@ -61,8 +61,8 @@ img {
   border-radius: 5px;
   background:
     linear-gradient(90deg, transparent 38%, rgba(255,255,255,0.95) 38% 48%, transparent 48% 58%, rgba(255,255,255,0.95) 58% 68%, transparent 68%),
-    linear-gradient(135deg, var(--green), #8fd14f);
-  box-shadow: 0 0 0 4px rgba(47, 158, 68, 0.12);
+    linear-gradient(135deg, var(--green), #b5c1ff);
+  box-shadow: 0 0 0 4px rgba(132, 179, 255, 0.18);
 }
 
 .nav-links {
@@ -73,7 +73,7 @@ img {
 
 .nav-links a {
   text-decoration: none;
-  color: #334238;
+  color: #30456e;
   font-weight: 800;
 }
 
@@ -83,9 +83,9 @@ img {
 
 .hero {
   background:
-    radial-gradient(circle at 18% 12%, rgba(47, 158, 68, 0.18), transparent 32%),
-    radial-gradient(circle at 84% 18%, rgba(143, 209, 79, 0.18), transparent 30%),
-    linear-gradient(180deg, #ffffff 0%, #edf8ee 100%);
+    radial-gradient(circle at 18% 12%, rgba(132, 179, 255, 0.26), transparent 32%),
+    radial-gradient(circle at 84% 18%, rgba(181, 193, 255, 0.24), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #eef4ff 100%);
   border-bottom: 1px solid var(--line);
 }
 
@@ -128,7 +128,7 @@ img {
 }
 
 .eyebrow.green {
-  color: #8fd14f;
+  color: #b5c1ff;
 }
 
 .hero-buttons {
@@ -158,7 +158,7 @@ img {
 .button.primary {
   background: var(--green);
   color: #fff;
-  box-shadow: 0 12px 26px rgba(47, 158, 68, 0.24);
+  box-shadow: 0 12px 26px rgba(59, 116, 224, 0.26);
 }
 
 .button.primary:hover {
@@ -191,7 +191,7 @@ img {
   background: rgba(255,255,255,0.75);
   border: 1px solid var(--line);
   border-radius: 999px;
-  color: #243328;
+  color: #243b63;
   font-size: 13px;
   font-weight: 900;
   padding: 8px 12px;
@@ -255,14 +255,14 @@ img {
   padding: 16px 22px;
   border-radius: 12px;
   font-weight: 900;
-  box-shadow: 0 8px 24px rgba(24,117,44,0.07);
+  box-shadow: 0 8px 24px rgba(59,116,224,0.08);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .flow div:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 32px rgba(24,117,44,0.12);
-  border-color: #b8d9bd;
+  box-shadow: 0 14px 32px rgba(59,116,224,0.14);
+  border-color: #b9ccf9;
 }
 
 .flow span {
@@ -298,7 +298,7 @@ img {
   border: 1px solid var(--line);
   border-radius: 18px;
   padding: 24px;
-  box-shadow: 0 12px 32px rgba(24,117,44,0.08);
+  box-shadow: 0 12px 32px rgba(59,116,224,0.09);
 }
 
 .use-card.highlight {
@@ -357,7 +357,7 @@ img {
   aspect-ratio: 1 / 1.12;
   object-fit: contain;
   object-position: top center;
-  background: #f2f7f3;
+  background: #eef4ff;
   border-radius: 12px;
   margin-bottom: 14px;
 }
@@ -385,7 +385,7 @@ img {
   left: 0;
   right: 0;
   height: 5px;
-  background: linear-gradient(90deg, var(--green), #8fd14f);
+  background: linear-gradient(90deg, var(--green), #b5c1ff);
 }
 
 .feature-card h3 {
@@ -400,7 +400,7 @@ img {
 
 .sell-line {
   margin-bottom: 14px !important;
-  color: #152918 !important;
+  color: #173769 !important;
   font-weight: 900;
 }
 
@@ -414,7 +414,7 @@ img {
 .dark {
   max-width: none;
   background:
-    radial-gradient(circle at top, rgba(47, 158, 68, 0.18), transparent 38%),
+    radial-gradient(circle at top, rgba(132, 179, 255, 0.22), transparent 38%),
     var(--dark);
   color: #fff;
   text-align: center;
@@ -430,7 +430,7 @@ img {
 
 .dark p {
   margin-top: 18px;
-  color: #d6e3d8;
+  color: #d6e3ff;
   font-size: 18px;
 }
 
@@ -444,9 +444,9 @@ img {
 
 .trust-list span {
   padding: 10px 14px;
-  border: 1px solid rgba(143,209,79,0.35);
+  border: 1px solid rgba(181,193,255,0.42);
   border-radius: 999px;
-  color: #f5fff5;
+  color: #f5f8ff;
   font-weight: 900;
   font-size: 14px;
 }
@@ -473,7 +473,7 @@ img {
   object-fit: contain;
   object-position: center;
   border-bottom: 1px solid var(--line);
-  background: #f2f7f3;
+  background: #eef4ff;
 }
 
 .screenshot-card.wide img {
@@ -517,7 +517,7 @@ img {
   border-top: 1px solid var(--line);
   padding: 32px 24px;
   text-align: center;
-  color: #4d5a50;
+  color: #52607b;
   font-size: 14px;
   background: #fff;
 }

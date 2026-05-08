@@ -1,6 +1,8 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [string]$InputFile
+    [string]$InputFile,
+    [Parameter(Position = 1)]
+    [string]$ProfileName = 'standard'
 )
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -19,19 +21,59 @@ function Get-TargetFormatFromExeName {
     }
 }
 
-function Get-EncodingProfile([string]$TargetExtension) {
+function Get-NormalizedAudioProfileName {
+    param([string]$ProfileName)
+
+    if ([string]::IsNullOrWhiteSpace($ProfileName)) {
+        return 'standard'
+    }
+
+    switch ($ProfileName.Trim().ToLowerInvariant()) {
+        'standard'     { return 'standard' }
+        'high'         { return 'high' }
+        'highquality'  { return 'high' }
+        'high_quality' { return 'high' }
+        'small'        { return 'small' }
+        'smallfile'    { return 'small' }
+        'small_file'   { return 'small' }
+        default        { return 'standard' }
+    }
+}
+
+function Get-AudioProfileDisplayName {
+    param([string]$ProfileName)
+
+    switch ((Get-NormalizedAudioProfileName -ProfileName $ProfileName)) {
+        'high'  { return 'high quality' }
+        'small' { return 'small file' }
+        default { return 'standard' }
+    }
+}
+
+function Get-EncodingProfile {
+    param(
+        [Parameter(Mandatory = $true)][string]$TargetExtension,
+        [Parameter(Mandatory = $true)][string]$ProfileName
+    )
+
+    $resolvedProfile = Get-NormalizedAudioProfileName -ProfileName $ProfileName
+
     switch ($TargetExtension.ToLowerInvariant()) {
         '.mp3' {
             return [PSCustomObject]@{
                 ModeLabel = 'Audio'
                 Codec     = 'libmp3lame'
-                Args      = @('-b:a', '320k')
+                Args      = switch ($resolvedProfile) {
+                    'high'  { @('-b:a', '320k') }
+                    'small' { @('-b:a', '192k') }
+                    default { @('-b:a', '256k') }
+                }
             }
         }
         '.wav' {
             return [PSCustomObject]@{
                 ModeLabel = 'Audio'
-                Codec     = 'pcm_s16le'
+                Codec     = if ($resolvedProfile -eq 'high') { 'pcm_s24le' } else { 'pcm_s16le' }
                 Args      = @()
             }
         }
@@ -39,21 +81,33 @@ function Get-EncodingProfile([string]$TargetExtension) {
             return [PSCustomObject]@{
                 ModeLabel = 'Audio'
                 Codec     = 'flac'
-                Args      = @('-compression_level', '5')
+                Args      = switch ($resolvedProfile) {
+                    'high'  { @('-compression_level', '8') }
+                    'small' { @('-compression_level', '3') }
+                    default { @('-compression_level', '5') }
+                }
             }
         }
         '.m4a' {
             return [PSCustomObject]@{
                 ModeLabel = 'Audio'
                 Codec     = 'aac'
-                Args      = @('-b:a', '256k')
+                Args      = switch ($resolvedProfile) {
+                    'high'  { @('-b:a', '256k') }
+                    'small' { @('-b:a', '128k') }
+                    default { @('-b:a', '192k') }
+                }
             }
         }
         '.ogg' {
             return [PSCustomObject]@{
                 ModeLabel = 'Audio'
                 Codec     = 'libvorbis'
-                Args      = @('-q:a', '6')
+                Args      = switch ($resolvedProfile) {
+                    'high'  { @('-q:a', '8') }
+                    'small' { @('-q:a', '4') }
+                    default { @('-q:a', '6') }
+                }
             }
         }
         default {
@@ -132,7 +186,9 @@ try {
     }
 
     $audioInfo = Get-AudioInfo -FfprobePath $ffprobe -FilePath $InputFile
-    $encodingProfile = Get-EncodingProfile -TargetExtension $targetExtension
+    $resolvedProfileName = Get-NormalizedAudioProfileName -ProfileName $ProfileName
+    $profileDisplayName = Get-AudioProfileDisplayName -ProfileName $resolvedProfileName
+    $encodingProfile = Get-EncodingProfile -TargetExtension $targetExtension -ProfileName $resolvedProfileName
     $totalDuration = [double]$audioInfo.DurationSeconds
 
     $inputDir = Split-Path -Parent $InputFile
@@ -142,7 +198,7 @@ try {
     $script:OutputFile = Get-UniqueOutputPath -DesiredPath $desiredOutput
 
     $ffmpegArgs = New-FFmpegArguments -InputFile $InputFile -OutputFile $script:OutputFile -EncodingProfile $encodingProfile
-    $result = Invoke-FFmpegWithProgress -FfmpegPath $ffmpeg -Arguments $ffmpegArgs -DurationSeconds $totalDuration -OutputFile $script:OutputFile -Title 'Audio conversion in progress' -StatusText "Preparing conversion to $targetLabel..." -ModeLabel 'Audio'
+    $result = Invoke-FFmpegWithProgress -FfmpegPath $ffmpeg -Arguments $ffmpegArgs -DurationSeconds $totalDuration -OutputFile $script:OutputFile -Title 'Audio conversion in progress' -StatusText "Preparing $profileDisplayName conversion to $targetLabel..." -ModeLabel 'Audio'
 
     if ($result.Cancelled) {
         Remove-PartialOutput -Path $script:OutputFile
